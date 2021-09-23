@@ -10,4 +10,3 @@ cs 452 shell
 - [ ] semi colons
 
 yeet
-testing changing things
