@@ -7,7 +7,7 @@ int argcount = 0;
 %}
 
 WORD	   [a-zA-Z0-9\/\.-]+
-SPECIAL    [();*]
+SPECIAL    [;*]
 
 %%
 
@@ -21,7 +21,7 @@ SPECIAL    [();*]
   }
 }
 
-">"   { printf("output direct\n"); }
+">"   { printf("output direct at position %d\n", argcount); }
 
 "<"   { printf("input direct\n"); }
 
@@ -30,6 +30,10 @@ SPECIAL    [();*]
 "&"   { printf("amp\n"); }
 
 "|"   { printf("pipe\n"); }
+
+"("   { printf("left paren\n"); }
+
+")"   { printf("right paren\n"); }
 
 [ \t]+  ;
 
