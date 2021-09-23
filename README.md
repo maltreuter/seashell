@@ -8,3 +8,5 @@ cs 452 shell
 - [ ] ampersands
 - [ ] parens
 - [ ] semi colons
+
+yeet
