@@ -31,5 +31,6 @@ void yyerror(const char *s) {
 }
 
 int main(void) {
+    printf("->");
     yyparse();
 }

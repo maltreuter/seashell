@@ -4,9 +4,7 @@
 #define YYSTYPE char *
 #include "shell.h"
 #include "y.tab.h"
-
-char *command[MAX_ARG_COUNT];
-int argcount = 0;
+extern YYSTYPE yylval;
 %}
 
 WORD	   [a-zA-Z0-9\/\.-]+
@@ -19,7 +17,7 @@ SPECIAL    [;*]
   return COM;
 }
 
-">"   { printf("output direct at position %d\n", argcount); }
+">"   { printf("output direct\n"); }
 
 "<"   { printf("input direct\n"); }
 
