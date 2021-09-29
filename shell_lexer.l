@@ -12,6 +12,10 @@ SPECIAL    [;*]
 
 %%
 
+exit|quit  { exit(0); }
+
+cd|chdir   { printf("cd yeet time\n"); }
+
 {WORD}|{SPECIAL} {
   yylval = strdup(yytext);
   return COM;
@@ -33,7 +37,7 @@ SPECIAL    [;*]
 
 [ \t]+  ;
 
-\n  ;
+\n    { printf("->"); }
 
 %%
 
