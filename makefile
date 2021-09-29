@@ -6,8 +6,8 @@ all: parser lex shell
 parser: parser.y
 	yacc -d parser.y
 
-lex: shell_lexer.l
-	flex shell_lexer.l
+lex: lexer.l
+	flex lexer.l
 
 shell: lex.yy.c y.tab.c
 	$(CC) lex.yy.c y.tab.c -o shell $(FLAGS)
