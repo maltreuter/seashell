@@ -1,13 +1,16 @@
 CC=gcc
-FLAGS=-g -Wall
+FLAGS=-Wall
 
-all: lex shell
+all: parser lex shell
+
+parser: parser.y
+	yacc -d parser.y
 
 lex: shell_lexer.l
 	flex shell_lexer.l
 
-shell: shell.c lex.yy.c
-	$(CC) -o shell shell.c lex.yy.c $(FLAGS)
+shell: lex.yy.c y.tab.c
+	$(CC) lex.yy.c y.tab.c -o shell $(FLAGS)
 
 clean:
-	rm lex.yy.c shell
+	rm lex.yy.c y.tab.* shell

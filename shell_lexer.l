@@ -1,7 +1,10 @@
 %option noyywrap
 
 %{
+#define YYSTYPE char *
 #include "shell.h"
+#include "y.tab.h"
+
 char *command[MAX_ARG_COUNT];
 int argcount = 0;
 %}
@@ -11,14 +14,9 @@ SPECIAL    [;*]
 
 %%
 
-  command[0] = NULL;
-  argcount = 0;
-
 {WORD}|{SPECIAL} {
-  if(argcount < MAX_ARG_COUNT - 1) {
-    command[argcount++] = strdup(yytext);
-    command[argcount] = NULL;
-  }
+  yylval = strdup(yytext);
+  return COM;
 }
 
 ">"   { printf("output direct at position %d\n", argcount); }
@@ -27,9 +25,9 @@ SPECIAL    [;*]
 
 ">>"  { printf("append\n"); }
 
-"&"   { printf("amp\n"); }
+"&"   { return AMP; }
 
-"|"   { printf("pipe\n"); }
+"|"   { return PIPE; }
 
 "("   { printf("left paren\n"); }
 
@@ -37,10 +35,22 @@ SPECIAL    [;*]
 
 [ \t]+  ;
 
-\n { return do_command(command); }
+\n  ;
 
 %%
 
-int get_command() {
+/*
+  command[0] = NULL;
+  argcount = 0;
+
+{WORD}|{SPECIAL} {
+  if(argcount < MAX_ARG_COUNT - 1) {
+    command[argcount++] = strdup(yytext);
+    command[argcount] = NULL;
+  }
+  return COM;
+} */
+
+/* int get_command() {
   return yylex();
-}
+} */
