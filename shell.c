@@ -7,7 +7,15 @@ int do_command(char **command, int pipe) {
   pid_t child_pid;
   int status;
   int result;
+
   int i;
+
+  int input;
+  int output;
+  int append;
+  char *input_filename;
+  char *output_filename;
+
   char **next_command;
 
   if(command[0] != NULL) {
@@ -17,7 +25,14 @@ int do_command(char **command, int pipe) {
       }
       printf("\n");
 
+      if(internal_command(command)) {
+          printf("internal command\n");
+      }
+
       // Check for input/output/append
+      input = input_redir(command, &input_filename);
+      output = output_redir(command, &output_filename);
+      append = check_append(command, &output_filename);
 
       // Check for ampersand for backgrounding
 
@@ -25,6 +40,18 @@ int do_command(char **command, int pipe) {
 
       child_pid = fork();
       if(child_pid == 0) {
+          if(input) {
+              freopen(input_filename, "r", stdin);
+          }
+
+          if(output) {
+              freopen(output_filename, "w+", stdout);
+          }
+
+          if(append) {
+              freopen(output_filename, "a+", stdout);
+          }
+
           execvp(command[0], command);
       }
 
@@ -33,6 +60,18 @@ int do_command(char **command, int pipe) {
       return result;
   }
   return 0;
+}
+
+int internal_command(char **command) {
+    if(strcmp(command[0], "exit") == 0) {
+        exit(0);
+    } else if(strcmp(command[0], "cd") == 0) {
+        // if command[1] == NULL then error for no directory provided
+        // else run chdir(command[1])
+        // if chdir(command[1]) returns 0, yeet em and skeet em
+        // else return error that directory doesnt exist
+    }
+    return 0;
 }
 
 int ampersand(char **command) {
@@ -49,22 +88,22 @@ int input_redir(char **command, char **input_filename) {
     int i;
     int j;
 
-    for(i = 0; args[i] != NULL; i++) {
+    for(i = 0; command[i] != NULL; i++) {
 
         // Look for the <
-        if(args[i][0] == '<') {
-            free(args[i]);
+        if(command[i][0] == '<') {
+            free(command[i]);
 
             // Read the filename
-            if(args[i+1] != NULL) {
-                *input_filename = args[i+1];
+            if(command[i+1] != NULL) {
+                *input_filename = command[i+1];
             } else {
                 return -1;
             }
 
             // Adjust the rest of the arguments in the array
-            for(j = i; args[j-1] != NULL; j++) {
-                args[j] = args[j+2];
+            for(j = i; command[j-1] != NULL; j++) {
+                command[j] = command[j+2];
             }
 
             return 1;
@@ -78,22 +117,22 @@ int output_redir(char **command, char **output_filename) {
     int i;
     int j;
 
-    for(i = 0; args[i] != NULL; i++) {
+    for(i = 0; command[i] != NULL; i++) {
 
         // Look for the >
-        if(args[i][0] == '>') {
-            free(args[i]);
+        if(command[i][0] == '>') {
+            free(command[i]);
 
             // Get the filename
-            if(args[i+1] != NULL) {
-                *output_filename = args[i+1];
+            if(command[i+1] != NULL) {
+                *output_filename = command[i+1];
             } else {
                 return -1;
             }
 
             // Adjust the rest of the arguments in the array
-            for(j = i; args[j-1] != NULL; j++) {
-                args[j] = args[j+2];
+            for(j = i; command[j-1] != NULL; j++) {
+                command[j] = command[j+2];
             }
 
             return 1;
@@ -103,23 +142,23 @@ int output_redir(char **command, char **output_filename) {
     return 0;
 }
 
-int append(char **command, char **output_filename) {
+int check_append(char **command, char **output_filename) {
     int i;
     int j;
 
-    for(i = 0; args[i] != NULL; i++) {
-        if(args[i][0] == '>' && args[i + 1][0] == '>') {
-            free(args[i]);
-            free(args[i + 1]);
+    for(i = 0; command[i] != NULL; i++) {
+        if(command[i][0] == '>' && command[i + 1][0] == '>') {
+            free(command[i]);
+            free(command[i + 1]);
 
-            if(args[i+2] != 0) {
-                *output_filename = args[i+2];
+            if(command[i+2] != 0) {
+                *output_filename = command[i+2];
             } else {
                 return -1;
             }
 
-            for(j = i; args[j - 1] != NULL; j++) {
-                args[j] = args[j+3];
+            for(j = i; command[j - 1] != NULL; j++) {
+                command[j] = command[j+3];
             }
 
             return 1;

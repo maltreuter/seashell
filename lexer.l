@@ -25,7 +25,7 @@ exit|quit  { exit(0); }
 
 [ \t]+  ;
 
-\n    { return do_command(command, 0, 0, 0); }
+\n    { return do_command(command, 0); }
 
 %%
 
