@@ -3,7 +3,7 @@
 extern int get_command();
 
 // run commands (recursively)
-int do_command(char **command, int pipe, int input, int ouput) {
+int do_command(char **command, int pipe) {
   pid_t child_pid;
   int status;
   int result;
@@ -46,17 +46,86 @@ int check_pipe(char **command) {
 }
 
 int input_redir(char **command, char **input_filename) {
-    printf("input redir\n");
+    int i;
+    int j;
+
+    for(i = 0; args[i] != NULL; i++) {
+
+        // Look for the <
+        if(args[i][0] == '<') {
+            free(args[i]);
+
+            // Read the filename
+            if(args[i+1] != NULL) {
+                *input_filename = args[i+1];
+            } else {
+                return -1;
+            }
+
+            // Adjust the rest of the arguments in the array
+            for(j = i; args[j-1] != NULL; j++) {
+                args[j] = args[j+2];
+            }
+
+            return 1;
+        }
+    }
+
     return 0;
 }
 
 int output_redir(char **command, char **output_filename) {
-    printf("output redir\n");
+    int i;
+    int j;
+
+    for(i = 0; args[i] != NULL; i++) {
+
+        // Look for the >
+        if(args[i][0] == '>') {
+            free(args[i]);
+
+            // Get the filename
+            if(args[i+1] != NULL) {
+                *output_filename = args[i+1];
+            } else {
+                return -1;
+            }
+
+            // Adjust the rest of the arguments in the array
+            for(j = i; args[j-1] != NULL; j++) {
+                args[j] = args[j+2];
+            }
+
+            return 1;
+        }
+    }
+
     return 0;
 }
 
 int append(char **command, char **output_filename) {
-    printf("append\n");
+    int i;
+    int j;
+
+    for(i = 0; args[i] != NULL; i++) {
+        if(args[i][0] == '>' && args[i + 1][0] == '>') {
+            free(args[i]);
+            free(args[i + 1]);
+
+            if(args[i+2] != 0) {
+                *output_filename = args[i+2];
+            } else {
+                return -1;
+            }
+
+            for(j = i; args[j - 1] != NULL; j++) {
+                args[j] = args[j+3];
+            }
+
+            return 1;
+        }
+    }
+
     return 0;
 }
 
