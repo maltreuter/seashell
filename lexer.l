@@ -1,10 +1,9 @@
 %option noyywrap
 
 %{
-#define YYSTYPE char *
 #include "shell.h"
-#include "y.tab.h"
-extern YYSTYPE yylval;
+char *command[MAX_ARG_COUNT];
+int argcount;
 %}
 
 WORD	   [a-zA-Z0-9\/\.-]+
@@ -12,13 +11,18 @@ SPECIAL    [;*]
 
 %%
 
+    command[0] = NULL;
+    argcount = 0;
+
 exit|quit  { exit(0); }
 
 cd|chdir   { printf("cd yeet time\n"); }
 
 {WORD}|{SPECIAL} {
-  yylval = strdup(yytext);
-  return COM;
+  if(argcount < MAX_ARG_COUNT - 1) {
+    command[argcount++] = strdup(yytext);
+    command[argcount] = NULL;
+  }
 }
 
 ">"   { printf("output direct\n"); }
@@ -27,9 +31,9 @@ cd|chdir   { printf("cd yeet time\n"); }
 
 ">>"  { printf("append\n"); }
 
-"&"   { return AMP; }
+"&"   { printf("ampersand\n"); }
 
-"|"   { return PIPE; }
+"|"   { printf("pipe\n"); }
 
 "("   { printf("left paren\n"); }
 
@@ -37,22 +41,10 @@ cd|chdir   { printf("cd yeet time\n"); }
 
 [ \t]+  ;
 
-\n    { printf("->"); }
+\n    { return do_command(command); }
 
 %%
 
-/*
-  command[0] = NULL;
-  argcount = 0;
-
-{WORD}|{SPECIAL} {
-  if(argcount < MAX_ARG_COUNT - 1) {
-    command[argcount++] = strdup(yytext);
-    command[argcount] = NULL;
-  }
-  return COM;
-} */
-
-/* int get_command() {
+int get_command() {
   return yylex();
-} */
+}
