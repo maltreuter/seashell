@@ -1,7 +1,8 @@
 %option noyywrap
+%option yylineno
 
 %{
-#define YYSTYPE char *
+//#define YYSTYPE char *
 #include "shell.h"
 #include "y.tab.h"
 extern YYSTYPE yylval;
@@ -17,8 +18,8 @@ exit|quit  { exit(0); }
 cd|chdir   { printf("cd yeet time\n"); }
 
 {WORD}|{SPECIAL} {
-  yylval = strdup(yytext);
-  return COM;
+  yylval.string = strdup(yytext);
+  return WORD;
 }
 
 ">"   { printf("output direct\n"); }
@@ -27,9 +28,9 @@ cd|chdir   { printf("cd yeet time\n"); }
 
 ">>"  { printf("append\n"); }
 
-"&"   { return AMP; }
+"&"   { printf("ampersand\n"); }
 
-"|"   { return PIPE; }
+"|"   { printf("pipe\n"); }
 
 "("   { printf("left paren\n"); }
 
@@ -37,7 +38,7 @@ cd|chdir   { printf("cd yeet time\n"); }
 
 [ \t]+  ;
 
-\n    { printf("->"); }
+\n    { return TERM; }
 
 %%
 

@@ -1,36 +1,55 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include "shell.h"
 
-#define YYSTYPE char *
+extern int yylineno;
 
 int yylex();
 int yyparse();
 void yyerror(const char *s);
 %}
 
-%token COM PIPE AMP
+%token TERM
+
+%token <string> WORD
+%token <args_n> ARGS
+
+%type <args_n> arg_list
+
+%initial-action
+{
+    printf("->");
+}
+
+%union {
+    char *string;
+    struct args_n *head;
+}
 
 %%
 
 commands:   /* empty */
-        |   commands command
+        |   commands error TERM { yyerrok; }
+        |   commands arg_list TERM { printf("commands arg_list TERM\n"); }
         ;
-
-command:
-        COM
-        {
-            printf("%s\n", $1);
-        }
+arg_list:
+        WORD arg_list { printf("WORD arg_list: %s\n", $1); }
+        |
+        ARGS arg_list { printf("ARGS arg_list\n"); }
+        |
+        ARGS { printf("ARGS\n"); }
+        |
+        WORD { printf("WORD: %s\n", $1); }
         ;
 
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "error: %s\n", s);
+    fprintf(stderr, "error at line %d: %s\n", yylineno, s);
 }
 
 int main(void) {
-    printf("->");
+    //printf("->");
     yyparse();
 }
