@@ -7,14 +7,12 @@ int argcount;
 %}
 
 WORD	   [a-zA-Z0-9\/\.-]+
-SPECIAL    [><&|();*]
+SPECIAL    [><&|();*]+
 
 %%
 
     command[0] = NULL;
     argcount = 0;
-
-exit|quit  { exit(0); }
 
 {WORD}|{SPECIAL} {
   if(argcount < MAX_ARG_COUNT - 1) {

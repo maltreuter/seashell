@@ -25,14 +25,17 @@ int do_command(char **command, int pipe) {
       }
       printf("\n");
 
+      // Check for exit and cd
       if(internal_command(command)) {
-          printf("internal command\n");
+          return 0;
       }
 
       // Check for input/output/append
       input = input_redir(command, &input_filename);
-      output = output_redir(command, &output_filename);
       append = check_append(command, &output_filename);
+      if(!append) {
+          output = output_redir(command, &output_filename);
+      }
 
       // Check for ampersand for backgrounding
 
@@ -66,10 +69,14 @@ int internal_command(char **command) {
     if(strcmp(command[0], "exit") == 0) {
         exit(0);
     } else if(strcmp(command[0], "cd") == 0) {
-        // if command[1] == NULL then error for no directory provided
-        // else run chdir(command[1])
-        // if chdir(command[1]) returns 0, yeet em and skeet em
-        // else return error that directory doesnt exist
+        if(command[1] == NULL) {
+            printf("cd error: no directory provided\n");
+        } else {
+            if(chdir(command[1]) != 0) {
+                printf("cd error: directory doesn't exist\n");
+            }
+            return 1;
+        }
     }
     return 0;
 }
@@ -89,7 +96,6 @@ int input_redir(char **command, char **input_filename) {
     int j;
 
     for(i = 0; command[i] != NULL; i++) {
-
         // Look for the <
         if(command[i][0] == '<') {
             free(command[i]);
@@ -109,7 +115,6 @@ int input_redir(char **command, char **input_filename) {
             return 1;
         }
     }
-
     return 0;
 }
 
@@ -118,7 +123,6 @@ int output_redir(char **command, char **output_filename) {
     int j;
 
     for(i = 0; command[i] != NULL; i++) {
-
         // Look for the >
         if(command[i][0] == '>') {
             free(command[i]);
@@ -138,7 +142,6 @@ int output_redir(char **command, char **output_filename) {
             return 1;
         }
     }
-
     return 0;
 }
 
@@ -147,24 +150,22 @@ int check_append(char **command, char **output_filename) {
     int j;
 
     for(i = 0; command[i] != NULL; i++) {
-        if(command[i][0] == '>' && command[i + 1][0] == '>') {
+        if(command[i][0] == '>' && command[i][1] == '>') {
             free(command[i]);
-            free(command[i + 1]);
 
-            if(command[i+2] != 0) {
-                *output_filename = command[i+2];
+            if(command[i+1] != NULL) {
+                *output_filename = command[i+1];
             } else {
                 return -1;
             }
 
             for(j = i; command[j - 1] != NULL; j++) {
-                command[j] = command[j+3];
+                command[j] = command[j+2];
             }
 
             return 1;
         }
     }
-
     return 0;
 }
 
