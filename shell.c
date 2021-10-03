@@ -16,7 +16,7 @@ int do_command(char **command, int pipe) {
   char *input_filename;
   char *output_filename;
 
-  char **next_command;
+  char **next_command = NULL;
 
   if(command[0] != NULL) {
       printf("Running command: ");
@@ -40,6 +40,14 @@ int do_command(char **command, int pipe) {
       // Check for ampersand for backgrounding
 
       // Check for pipes
+      next_command = check_pipe(command);
+      if(next_command[0] != NULL) {
+          printf("\npiped to: ");
+          for(i = 0; next_command[i] != NULL; i++) {
+              printf("%s ", next_command[i]);
+          }
+          printf("\n");
+      }
 
       child_pid = fork();
       if(child_pid == 0) {
@@ -86,9 +94,16 @@ int ampersand(char **command) {
     return 0;
 }
 
-int check_pipe(char **command) {
-    printf("pipe\n");
-    return 0;
+char **check_pipe(char **command) {
+    int i;
+    char **next_command = NULL;
+    for(i = 0; command[i] != NULL; i++) {
+        if(strcmp(command[i], "|") == 0 && command[i + 1] != NULL) {
+            next_command = &command[i + 1];
+            command[i] = NULL;
+        }
+    }
+    return next_command;
 }
 
 int input_redir(char **command, char **input_filename) {

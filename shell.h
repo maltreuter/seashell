@@ -14,7 +14,7 @@
 int do_command(char **command, int pipe);
 int internal_command(char **command);
 int ampersand(char **command);
-int check_pipe(char **command);
+char **check_pipe(char **command);
 int input_redir(char **command, char **input_filename);
 int output_redir(char **command, char **output_filename);
 int check_append(char **command, char **output_filename);
