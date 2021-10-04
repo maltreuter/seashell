@@ -15,6 +15,7 @@ int do_command(char **command, int pipe) {
   int append;
   char *input_filename;
   char *output_filename;
+  char *append_filename;
 
   char **next_command = NULL;
 
@@ -32,16 +33,17 @@ int do_command(char **command, int pipe) {
 
       // Check for input/output/append
       input = input_redir(command, &input_filename);
-      append = check_append(command, &output_filename);
-      if(!append) {
-          output = output_redir(command, &output_filename);
-      }
+      append = check_append(command, &append_filename);
+      output = output_redir(command, &output_filename);
 
       // Check for ampersand for backgrounding
 
-      // Check for pipes
+      // Check for pipes and get right side of pipe (next_command)
+      int pipefd[2];
       next_command = check_pipe(command);
-      if(next_command[0] != NULL) {
+
+      // If next_command is not NULL then you know there is a pipe
+      if(next_command != NULL) {
           printf("\npiped to: ");
           for(i = 0; next_command[i] != NULL; i++) {
               printf("%s ", next_command[i]);
@@ -55,12 +57,12 @@ int do_command(char **command, int pipe) {
               freopen(input_filename, "r", stdin);
           }
 
-          if(output) {
+          if(output && append) {
+              // yeet my ass 
+          } else if(output) {
               freopen(output_filename, "w+", stdout);
-          }
-
-          if(append) {
-              freopen(output_filename, "a+", stdout);
+          } else if(append) {
+              freopen(append_filename, "a+", stdout);
           }
 
           execvp(command[0], command);
@@ -160,7 +162,7 @@ int output_redir(char **command, char **output_filename) {
     return 0;
 }
 
-int check_append(char **command, char **output_filename) {
+int check_append(char **command, char **append_filename) {
     int i;
     int j;
 
@@ -169,7 +171,7 @@ int check_append(char **command, char **output_filename) {
             free(command[i]);
 
             if(command[i+1] != NULL) {
-                *output_filename = command[i+1];
+                *append_filename = command[i+1];
             } else {
                 return -1;
             }
