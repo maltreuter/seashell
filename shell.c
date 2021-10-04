@@ -3,7 +3,7 @@
 extern int get_command();
 
 // run commands (recursively)
-int do_command(char **command, int pipe) {
+int do_command(char **command, int pipe_read, int pipe_write) {
   pid_t child_pid;
   int status;
   int result;
@@ -40,7 +40,7 @@ int do_command(char **command, int pipe) {
 
       // Check for pipes and get right side of pipe (next_command)
       int pipefd[2];
-      next_command = check_pipe(command);
+      int pipes = check_pipe(command, &next_command);
 
       // If next_command is not NULL then you know there is a pipe
       if(next_command != NULL) {
@@ -56,9 +56,8 @@ int do_command(char **command, int pipe) {
           if(input) {
               freopen(input_filename, "r", stdin);
           }
-
           if(output && append) {
-              // yeet my ass 
+              // yeet my ass
           } else if(output) {
               freopen(output_filename, "w+", stdout);
           } else if(append) {
@@ -96,16 +95,16 @@ int ampersand(char **command) {
     return 0;
 }
 
-char **check_pipe(char **command) {
+int check_pipe(char **command, char ***next_command) {
     int i;
-    char **next_command = NULL;
     for(i = 0; command[i] != NULL; i++) {
         if(strcmp(command[i], "|") == 0 && command[i + 1] != NULL) {
-            next_command = &command[i + 1];
+            *next_command = &command[i + 1];
             command[i] = NULL;
+            return 1;
         }
     }
-    return next_command;
+    return 0;
 }
 
 int input_redir(char **command, char **input_filename) {
