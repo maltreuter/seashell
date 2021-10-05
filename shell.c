@@ -3,79 +3,78 @@
 extern int get_command();
 
 // run commands (recursively)
-int do_command(char **command, int pipe_read) {
-  pid_t child_pid;
-  int status;
-  int result;
+int do_command(char **command, int in, int out) {
+  	pid_t child_pid;
+  	int status;
+  	int result;
 
-  int i;
+  	int i;
 
-  int input;
-  int output;
-  int append;
-  char *input_filename;
-  char *output_filename;
-  char *append_filename;
+  	int input;
+  	int output;
+  	int append;
+  	char *input_filename;
+  	char *output_filename;
+  	char *append_filename;
 
-  char **next_command = NULL;
+  	char **next_command = NULL;
 
-  int saved_stdin = dup(STDIN_FILENO);
+  	if(command[0] != NULL) {
+      	printf("Running command: ");
+      	for(i = 0; command[i] != NULL; i++) {
+        	printf("%s ", command[i]);
+      	}
+      	printf("\n");
 
-  if(command[0] != NULL) {
-      printf("Running command: ");
-      for(i = 0; command[i] != NULL; i++) {
-        printf("%s ", command[i]);
-      }
-      printf("\n");
+      	// Check for exit and cd
+      	if(internal_command(command)) {
+          	return 0;
+      	}
 
-      // Check for exit and cd
-      if(internal_command(command)) {
-          return 0;
-      }
+      	// Check for input/output/append
+      	input = input_redir(command, &input_filename);
+      	append = check_append(command, &append_filename);
+      	output = output_redir(command, &output_filename);
 
-      // Check for input/output/append
-      input = input_redir(command, &input_filename);
-      append = check_append(command, &append_filename);
-      output = output_redir(command, &output_filename);
+      	// Check for ampersand for backgrounding
 
-      // Check for ampersand for backgrounding
+      	// Check for pipes and get right side of pipe (next_command)
+      	int pipes = check_pipe(command, &next_command);
 
-      // Check for pipes and get right side of pipe (next_command)
-      int pipes = check_pipe(command, &next_command);
+		char **current = command;
+		int fd[2];
 
-      // Last command
-      if(next_command == NULL) {
-          child_pid = fork();
-          switch(child_pid) {
-              case 0:
-                  dup2(pipe_read, STDIN_FILENO); // Read end of pipe
-                  close(pipe_read);
-                  
-                  dup2(saved_stdin, 0); // Restore stdin
-                  close(saved_stdin);
-                  // < > >>
-                  printf("yeet1\n");
-                  execvp(command[0], command);
-              default:
-                  waitpid(child_pid, &status, 0);
-          }
-      } else {
-          int fd[2];
-          pipe(fd);
+		if(pipes) {
+			child_pid = fork();
+			if(child_pid == 0) {
+				// Child
+				while(pipes) {
+					pipe(fd);
 
-          switch(fork()) {
-            case 0:
-                close(fd[0]);
-                dup2(pipe_read, STDIN_FILENO);
-                dup2(fd[1], STDOUT_FILENO);
-                // < > >>
-                execvp(command[0], command);
-            default:
-                close(fd[1]);
-                close(pipe_read);
-                do_command(next_command, fd[0]);
-          }
-      }
+					spawn_process(current, in, fd[1]);
+
+					close(fd[1]);
+					in = fd[0];
+
+					// Get next command
+					current = next_command;
+					next_command = NULL;
+					pipes = check_pipe(current, &next_command);
+				}
+
+				// Last command
+				if(in != 0) {
+					dup2(in, 0);
+				}
+
+				execvp(current[0], current);
+			} else {
+				// Parent
+			}
+		} else {
+			// No pipes
+			spawn_process(command, 0, 1);
+		}
 
       // If next_command is not NULL then you know there is a pipe
       /*
@@ -107,8 +106,8 @@ int do_command(char **command, int pipe_read) {
 
       return result;
       */
-  }
-  return 0;
+  	}
+  	return 0;
 }
 
 int internal_command(char **command) {
@@ -136,7 +135,7 @@ int check_pipe(char **command, char ***next_command) {
     int i;
     for(i = 0; command[i] != NULL; i++) {
         if(strcmp(command[i], "|") == 0 && command[i + 1] != NULL) {
-            *next_command = &command[i + 1];
+        	*next_command = &command[i + 1];
             command[i] = NULL;
             return 1;
         }
@@ -154,15 +153,15 @@ int input_redir(char **command, char **input_filename) {
             free(command[i]);
 
             // Read the filename
-            if(command[i+1] != NULL) {
-                *input_filename = command[i+1];
+            if(command[i + 1] != NULL) {
+                *input_filename = command[i + 1];
             } else {
                 return -1;
             }
 
             // Adjust the rest of the arguments in the array
-            for(j = i; command[j-1] != NULL; j++) {
-                command[j] = command[j+2];
+            for(j = i; command[j - 1] != NULL; j++) {
+                command[j] = command[j + 2];
             }
 
             return 1;
@@ -181,15 +180,15 @@ int output_redir(char **command, char **output_filename) {
             free(command[i]);
 
             // Get the filename
-            if(command[i+1] != NULL) {
-                *output_filename = command[i+1];
+            if(command[i + 1] != NULL) {
+                *output_filename = command[i + 1];
             } else {
                 return -1;
             }
 
             // Adjust the rest of the arguments in the array
-            for(j = i; command[j-1] != NULL; j++) {
-                command[j] = command[j+2];
+            for(j = i; command[j - 1] != NULL; j++) {
+                command[j] = command[j + 2];
             }
 
             return 1;
@@ -206,14 +205,14 @@ int check_append(char **command, char **append_filename) {
         if(command[i][0] == '>' && command[i][1] == '>') {
             free(command[i]);
 
-            if(command[i+1] != NULL) {
-                *append_filename = command[i+1];
+            if(command[i + 1] != NULL) {
+                *append_filename = command[i + 1];
             } else {
                 return -1;
             }
 
             for(j = i; command[j - 1] != NULL; j++) {
-                command[j] = command[j+2];
+                command[j] = command[j + 2];
             }
 
             return 1;
@@ -222,17 +221,41 @@ int check_append(char **command, char **append_filename) {
     return 0;
 }
 
+int spawn_process(char **command, int in, int out) {
+	pid_t pid;
+
+	pid = fork();
+	if(pid == 0) {
+		// Child
+		if(in != 0) {
+			dup2(in, 0);
+			close(in);
+		}
+
+		if(out != 1) {
+			dup2(out, 1);
+			close(out);
+		}
+
+		execvp(command[0], command);
+	} else {
+		// Parent
+		waitpid(pid, NULL, 0);
+	}
+
+	return pid;
+}
+
 int main(int argc, char* argv[]) {
     int status;
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 
     while(1) {
-      printf("->");
-      status = get_command();
-      printf("keep going daddy\n");
-      fdopen(STDIN_FILENO, "r");
+    	printf("->");
+      	status = get_command();
+      	printf("keep going daddy\n");
     }
 
-    return 0;
+    return status;
 }
