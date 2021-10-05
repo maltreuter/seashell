@@ -11,7 +11,7 @@
 #define MAX_ARG_COUNT 128
 #define SHELL_PID getpid()
 
-int do_command(char **command, int pipe_read, int pipe_write);
+int do_command(char **command, int pipe_read);
 int internal_command(char **command);
 int ampersand(char **command);
 int check_pipe(char **command, char ***next_command);

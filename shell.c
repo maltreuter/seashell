@@ -3,7 +3,7 @@
 extern int get_command();
 
 // run commands (recursively)
-int do_command(char **command, int pipe_read, int pipe_write) {
+int do_command(char **command, int pipe_read) {
   pid_t child_pid;
   int status;
   int result;
@@ -18,6 +18,8 @@ int do_command(char **command, int pipe_read, int pipe_write) {
   char *append_filename;
 
   char **next_command = NULL;
+
+  int saved_stdin = dup(STDIN_FILENO);
 
   if(command[0] != NULL) {
       printf("Running command: ");
@@ -39,10 +41,44 @@ int do_command(char **command, int pipe_read, int pipe_write) {
       // Check for ampersand for backgrounding
 
       // Check for pipes and get right side of pipe (next_command)
-      int pipefd[2];
       int pipes = check_pipe(command, &next_command);
 
+      // Last command
+      if(next_command == NULL) {
+          child_pid = fork();
+          switch(child_pid) {
+              case 0:
+                  dup2(pipe_read, STDIN_FILENO); // Read end of pipe
+                  close(pipe_read);
+                  
+                  dup2(saved_stdin, 0); // Restore stdin
+                  close(saved_stdin);
+                  // < > >>
+                  printf("yeet1\n");
+                  execvp(command[0], command);
+              default:
+                  waitpid(child_pid, &status, 0);
+          }
+      } else {
+          int fd[2];
+          pipe(fd);
+
+          switch(fork()) {
+            case 0:
+                close(fd[0]);
+                dup2(pipe_read, STDIN_FILENO);
+                dup2(fd[1], STDOUT_FILENO);
+                // < > >>
+                execvp(command[0], command);
+            default:
+                close(fd[1]);
+                close(pipe_read);
+                do_command(next_command, fd[0]);
+          }
+      }
+
       // If next_command is not NULL then you know there is a pipe
+      /*
       if(next_command != NULL) {
           printf("\npiped to: ");
           for(i = 0; next_command[i] != NULL; i++) {
@@ -70,6 +106,7 @@ int do_command(char **command, int pipe_read, int pipe_write) {
       result = waitpid(child_pid, &status, 0);
 
       return result;
+      */
   }
   return 0;
 }
@@ -193,6 +230,8 @@ int main(int argc, char* argv[]) {
     while(1) {
       printf("->");
       status = get_command();
+      printf("keep going daddy\n");
+      fdopen(STDIN_FILENO, "r");
     }
 
     return 0;

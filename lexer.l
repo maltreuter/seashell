@@ -23,7 +23,7 @@ SPECIAL    [><&|();*]+
 
 [ \t]+  ;
 
-\n    { return do_command(command, 0, 0); }
+\n    { return do_command(command, STDIN_FILENO); }
 
 %%
 
