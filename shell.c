@@ -6,7 +6,6 @@ extern int get_command();
 int do_command(char **command, int in, int out) {
   	pid_t child_pid;
   	int status;
-  	int result;
 
   	int i;
 
@@ -70,6 +69,7 @@ int do_command(char **command, int in, int out) {
 				execvp(current[0], current);
 			} else {
 				// Parent
+				child_pid = waitpid(child_pid, &status, 0);
 			}
 		} else {
 			// No pipes
@@ -223,6 +223,7 @@ int check_append(char **command, char **append_filename) {
 
 int spawn_process(char **command, int in, int out) {
 	pid_t pid;
+	int status;
 
 	pid = fork();
 	if(pid == 0) {
@@ -240,21 +241,32 @@ int spawn_process(char **command, int in, int out) {
 		execvp(command[0], command);
 	} else {
 		// Parent
-		waitpid(pid, NULL, 0);
+		pid = waitpid(pid, &status, 0);
 	}
 
 	return pid;
 }
 
+void sigchld_handler(int sig) {
+	while(1) {
+		pid_t pid = waitpid(-1, NULL, 0);
+
+		if(pid < 0) {
+			break;
+		}
+	}
+}
+
 int main(int argc, char* argv[]) {
     int status;
+
+	signal(SIGCHLD, sigchld_handler);
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 
     while(1) {
     	printf("->");
       	status = get_command();
-      	printf("keep going daddy\n");
     }
 
     return status;

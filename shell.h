@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #define MAX_ARG_COUNT 128
 #define SHELL_PID getpid()
@@ -19,5 +20,6 @@ int input_redir(char **command, char **input_filename);
 int output_redir(char **command, char **output_filename);
 int check_append(char **command, char **output_filename);
 int spawn_process(char **command, int in, int out);
+void sigchld_handler(int sig);
 
 #endif //SHELL_H
