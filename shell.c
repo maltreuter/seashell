@@ -36,7 +36,7 @@ int do_command(char **command, int in, int out) {
       	output = output_redir(command, &output_filename);
 
       	// Check for ampersand for backgrounding
-
+	
       	// Check for pipes and get right side of pipe (next_command)
       	int pipes = check_pipe(command, &next_command);
 
@@ -46,6 +46,16 @@ int do_command(char **command, int in, int out) {
 		if(pipes) {
 			child_pid = fork();
 			if(child_pid == 0) {
+				if(input) {
+					freopen(input_filename, "r", stdin);
+				}
+				if(output && append) {
+					//idk brah
+				} else if(output) {
+					freopen(output_filename, "w+", stdout);
+				} else if(append) {
+					freopen(append_filename, "a+", stdout);
+				}
 				// Child
 				while(pipes) {
 					pipe(fd);
@@ -73,7 +83,22 @@ int do_command(char **command, int in, int out) {
 			}
 		} else {
 			// No pipes
-			spawn_process(command, 0, 1);
+			child_pid = fork();
+			if(child_pid == 0) {
+				if(input) {
+					freopen(input_filename, "r", stdin);
+				}
+				if(output && append) {
+					//shit
+				} else if(output) {
+					freopen(output_filename, "w+", stdout);
+				} else if(append) {
+					freopen(append_filename, "a+", stdout);
+				}
+				execvp(command[0], command);
+			} else {
+				waitpid(child_pid, &status, 0);
+			}
 		}
 
       // If next_command is not NULL then you know there is a pipe
