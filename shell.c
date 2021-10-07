@@ -36,7 +36,7 @@ int do_command(char **command, int in, int out) {
       	output = output_redir(command, &output_filename);
 
       	// Check for ampersand for backgrounding
-	
+
       	// Check for pipes and get right side of pipe (next_command)
       	int pipes = check_pipe(command, &next_command);
 
@@ -90,6 +90,7 @@ int do_command(char **command, int in, int out) {
 				}
 				if(output && append) {
 					//shit
+					freopen("temp.txt", "w+", stdout);
 				} else if(output) {
 					freopen(output_filename, "w+", stdout);
 				} else if(append) {
@@ -98,6 +99,10 @@ int do_command(char **command, int in, int out) {
 				execvp(command[0], command);
 			} else {
 				waitpid(child_pid, &status, 0);
+
+				if(output && append) {
+					copy_temp_file(output_filename, append_filename);
+				}
 			}
 		}
 
@@ -280,6 +285,29 @@ void sigchld_handler(int sig) {
 			break;
 		}
 	}
+}
+
+int copy_temp_file(char *output_filename, char *append_filename) {
+	FILE *of = fopen(output_filename, "w+");
+	FILE *af = fopen(append_filename, "a+");
+	FILE *temp = fopen("temp.txt", "r");
+
+	char c;
+
+	c = fgetc(temp);
+	while(c != EOF) {
+		fputc(c, of);
+		fputc(c, af);
+
+		c = fgetc(temp);
+	}
+
+	fclose(of);
+	fclose(af);
+	fclose(temp);
+	remove("temp.txt");
+
+	return 0;
 }
 
 int main(int argc, char* argv[]) {

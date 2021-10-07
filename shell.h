@@ -21,5 +21,6 @@ int output_redir(char **command, char **output_filename);
 int check_append(char **command, char **output_filename);
 int spawn_process(char **command, int in, int out);
 void sigchld_handler(int sig);
+int copy_temp_file(char *output_filename, char *append_filename);
 
 #endif //SHELL_H
