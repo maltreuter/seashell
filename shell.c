@@ -105,37 +105,6 @@ int do_command(char **command, int in, int out) {
 				}
 			}
 		}
-
-      // If next_command is not NULL then you know there is a pipe
-      /*
-      if(next_command != NULL) {
-          printf("\npiped to: ");
-          for(i = 0; next_command[i] != NULL; i++) {
-              printf("%s ", next_command[i]);
-          }
-          printf("\n");
-      }
-
-      child_pid = fork();
-      if(child_pid == 0) {
-          if(input) {
-              freopen(input_filename, "r", stdin);
-          }
-          if(output && append) {
-              // yeet my ass
-          } else if(output) {
-              freopen(output_filename, "w+", stdout);
-          } else if(append) {
-              freopen(append_filename, "a+", stdout);
-          }
-
-          execvp(command[0], command);
-      }
-
-      result = waitpid(child_pid, &status, 0);
-
-      return result;
-      */
   	}
   	return 0;
 }
