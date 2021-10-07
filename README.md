@@ -6,6 +6,9 @@ cs 452 shell
 - [x] input, output, append redirection
 - [x] pipes
 - [ ] ampersands
+- [ ] error handling
+- [ ] memory leaks
+
 - [ ] parens
 - [ ] semi colons
 - [ ] && and ||
