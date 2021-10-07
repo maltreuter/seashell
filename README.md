@@ -2,11 +2,12 @@
 cs 452 shell
 
 ## TO DO
-- [ ] internal shell commands
-- [ ] signals
-- [ ] pipes
+- [x] internal shell commands (exit and cd)
+- [x] input, output, append redirection
+- [x] pipes
 - [ ] ampersands
 - [ ] parens
 - [ ] semi colons
+- [ ] && and ||
 
 yeet
