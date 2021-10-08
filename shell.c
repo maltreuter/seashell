@@ -36,6 +36,7 @@ int do_command(char **command, int in, int out) {
       	output = output_redir(command, &output_filename);
 
       	// Check for ampersand for backgrounding
+		int background = ampersand(command);
 
       	// Check for pipes and get right side of pipe (next_command)
       	int pipes = check_pipe(command, &next_command);
@@ -131,7 +132,20 @@ int internal_command(char **command) {
 }
 
 int ampersand(char **command) {
-    printf("ampersand\n");
+    int i;
+	for(i = 0; command[i] != NULL; i++) {
+		if(strcmp(command[i], "&") == 0) {
+			printf("background process\n");
+			// Free &
+			free(command[i]);
+
+			// Adjust the rest of the command?
+			// will there ever be anything after the &?
+			command[i] = NULL;
+			
+			return 1;
+		}
+	}
     return 0;
 }
 
