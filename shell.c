@@ -51,6 +51,7 @@ int do_command(char **command, int in, int out) {
 				}
 				if(output && append) {
 					//idk brah
+					freopen("temp.txt", "w+", stdout);
 				} else if(output) {
 					freopen(output_filename, "w+", stdout);
 				} else if(append) {
@@ -80,6 +81,10 @@ int do_command(char **command, int in, int out) {
 			} else {
 				// Parent
 				child_pid = waitpid(child_pid, &status, 0);
+
+				if(output && append) {
+					copy_temp_file(output_filename, append_filename);
+				}
 			}
 		} else {
 			// No pipes
