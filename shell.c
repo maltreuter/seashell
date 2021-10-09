@@ -4,6 +4,7 @@ extern int get_command();
 
 // run commands (recursively)
 int do_command(char **command, int in, int out) {
+	
   	pid_t child_pid;
   	int status;
 
@@ -17,7 +18,9 @@ int do_command(char **command, int in, int out) {
   	char *append_filename;
 
   	char **next_command = NULL;
-
+		for(i = 0; command[i] != NULL; i++) {
+      printf("Argument %d: %s\n", i, command[i]);
+    }
   	if(command[0] != NULL) {
       	printf("Running command: ");
       	for(i = 0; command[i] != NULL; i++) {
@@ -104,15 +107,18 @@ int do_command(char **command, int in, int out) {
 				}
 				execvp(command[0], command);
 			} else {
-				waitpid(child_pid, &status, 0);
-
+				if(background){
+					waitpid(child_pid, &status, WNOHANG);
+				} else {
+					waitpid(child_pid, &status, 0);
+				}
 				if(output && append) {
 					copy_temp_file(output_filename, append_filename);
 				}
 			}
 		}
-  	}
-  	return 0;
+  }
+  return 0;
 }
 
 int internal_command(char **command) {
@@ -132,7 +138,7 @@ int internal_command(char **command) {
 }
 
 int ampersand(char **command) {
-    int i;
+	int i;
 	for(i = 0; command[i] != NULL; i++) {
 		if(strcmp(command[i], "&") == 0) {
 			printf("background process\n");
