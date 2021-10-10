@@ -25,10 +25,10 @@ SPECIAL    [><&|();*]+
 
 [ \t]+  ;
 
-\n    { return do_command(command, STDIN_FILENO, STDOUT_FILENO); }
+\n    { return set_command(command); }
 
 %%
 
-int get_command() {
+int get_input() {
   return yylex();
 }

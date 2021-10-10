@@ -1,10 +1,10 @@
 #include "shell.h"
 
-extern int get_command();
+extern int get_input();
 
 // run commands (recursively)
 int do_command(char **command, int in, int out) {
-	
+
   	pid_t child_pid;
   	int status;
 
@@ -148,7 +148,7 @@ int ampersand(char **command) {
 			// Adjust the rest of the command?
 			// will there ever be anything after the &?
 			command[i] = NULL;
-			
+
 			return 1;
 		}
 	}
@@ -304,8 +304,24 @@ int copy_temp_file(char *output_filename, char *append_filename) {
 	return 0;
 }
 
+int set_command(char **command) {
+	c = command;
+	return 0;
+}
+
+char **get_command() {
+	char **command = c;
+	if(command != NULL) {
+		c = NULL;
+		return command;
+	}
+	return command;
+}
+
 int main(int argc, char* argv[]) {
     int status;
+	char **command = NULL;
+	int i;
 
 	signal(SIGCHLD, sigchld_handler);
 
@@ -313,7 +329,12 @@ int main(int argc, char* argv[]) {
 
     while(1) {
     	printf("->");
-      	status = get_command();
+      	status = get_input();
+		command = get_command();
+
+		if(command != NULL) {
+			do_command(command, STDIN_FILENO, STDOUT_FILENO);
+		}
     }
 
     return status;
