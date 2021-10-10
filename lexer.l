@@ -18,17 +18,17 @@ SPECIAL    [><&|();*]+
 
 {WORD}|{SPECIAL} {
   if(argcount < MAX_ARG_COUNT - 1) {
-    command[argcount++] = strdup(yytext);
+    command[argcount++] = (char *)strdup(yytext);
     command[argcount] = NULL;
   }
 }
 
 [ \t]+  ;
 
-\n    { return do_command(command, STDIN_FILENO, STDOUT_FILENO); }
+\n    return (int)command;
 
 %%
 
-int get_command() {
-  return yylex();
+char **get_command() {
+  return (char **)yylex();
 }

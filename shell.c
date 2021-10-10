@@ -306,14 +306,16 @@ int copy_temp_file(char *output_filename, char *append_filename) {
 
 int main(int argc, char* argv[]) {
     int status;
+    char **command;
 
 	signal(SIGCHLD, sigchld_handler);
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 
     while(1) {
-    	printf("->");
-      	status = get_command();
+    	printf("-> ");
+      	command = get_command();
+	do_command(command, STDIN_FILENO, STDOUT_FILENO);
     }
 
     return status;
