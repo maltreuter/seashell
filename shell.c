@@ -2,11 +2,11 @@
 
 extern int get_input();
 
-// run commands (recursively)
 int spawn(char **command, int in, int out) {
 
   	pid_t child_pid;
   	int status;
+	int result;
 
   	int i;
 
@@ -18,104 +18,97 @@ int spawn(char **command, int in, int out) {
   	char *append_filename;
 
   	char **next_command = NULL;
-  	if(command[0] != NULL) {
-      	printf("Running command: ");
-      	for(i = 0; command[i] != NULL; i++) {
-        	printf("%s ", command[i]);
-      	}
-      	printf("\n");
+	printf("Running command: ");
+	for(i = 0; command[i] != NULL; i++) {
+		printf("%s ", command[i]);
+	}
+	printf("\n");
 
-      	// Check for exit and cd
-      	if(internal_command(command)) {
-          	return 0;
-      	}
+	// Check for exit and cd
+	if(internal_command(command)) {
+		return 0;
+	}
 
-      	// Check for input/output/append
-      	input = input_redir(command, &input_filename);
-      	append = check_append(command, &append_filename);
-      	output = output_redir(command, &output_filename);
+	// Check for input/output/append
+	input = input_redir(command, &input_filename);
+	append = check_append(command, &append_filename);
+	output = output_redir(command, &output_filename);
 
-      	// Check for ampersand for backgrounding
-		int background = ampersand(command);
+	// Check for ampersand for backgrounding
+	int background = ampersand(command);
 
-      	// Check for pipes and get right side of pipe (next_command)
-      	int pipes = check_pipe(command, &next_command);
+	// Check for pipes and get right side of pipe (next_command)
+	int pipes = check_pipe(command, &next_command);
 
-		char **current = command;
-		int fd[2];
+	char **current = command;
+	int fd[2];
 
-		if(pipes) {
-			child_pid = fork();
-			if(child_pid == 0) {
-				if(input) {
-					freopen(input_filename, "r", stdin);
-				}
-				if(output && append) {
-					//idk brah
-					freopen("temp.txt", "w+", stdout);
-				} else if(output) {
-					freopen(output_filename, "w+", stdout);
-				} else if(append) {
-					freopen(append_filename, "a+", stdout);
-				}
-				// Child
-				while(pipes) {
-					pipe(fd);
-
-					spawn_process(current, in, fd[1]);
-
-					close(fd[1]);
-					in = fd[0];
-
-					// Get next command
-					current = next_command;
-					next_command = NULL;
-					pipes = check_pipe(current, &next_command);
-				}
-
-				// Last command
-				if(in != 0) {
-					dup2(in, 0);
-				}
-
-				execvp(current[0], current);
-			} else {
-				// Parent
-				child_pid = waitpid(child_pid, &status, 0);
-
-				if(output && append) {
-					copy_temp_file(output_filename, append_filename);
-				}
+	if(pipes) {
+		child_pid = fork();
+		if(child_pid == 0) {
+			if(input) {
+				freopen(input_filename, "r", stdin);
 			}
+			if(output && append) {
+				//idk brah
+				freopen("temp.txt", "w+", stdout);
+			} else if(output) {
+				freopen(output_filename, "w+", stdout);
+			} else if(append) {
+				freopen(append_filename, "a+", stdout);
+			}
+			// Child
+			while(pipes) {
+				pipe(fd);
+
+				result = spawn_process(current, in, fd[1], 0);
+
+				close(fd[1]);
+				in = fd[0];
+
+				// Get next command
+				current = next_command;
+				next_command = NULL;
+				pipes = check_pipe(current, &next_command);
+			}
+
+			// Last command
+			if(in != 0) {
+				dup2(in, 0);
+			}
+
+			result = spawn_process(command, in, 1, 0)
 		} else {
-			// No pipes
-			child_pid = fork();
-			if(child_pid == 0) {
-				if(input) {
-					freopen(input_filename, "r", stdin);
-				}
-				if(output && append) {
-					//shit
-					freopen("temp.txt", "w+", stdout);
-				} else if(output) {
-					freopen(output_filename, "w+", stdout);
-				} else if(append) {
-					freopen(append_filename, "a+", stdout);
-				}
-				execvp(command[0], command);
-			} else {
-				if(background){
-					waitpid(child_pid, &status, WNOHANG);
-				} else {
-					waitpid(child_pid, &status, 0);
-				}
-				if(output && append) {
-					copy_temp_file(output_filename, append_filename);
-				}
+			// Parent
+			child_pid = waitpid(child_pid, &status, 0);
+
+			if(output && append) {
+				copy_temp_file(output_filename, append_filename);
 			}
 		}
-  }
-  return 0;
+	} else {
+		// No pipes
+		child_pid = fork();
+		if(child_pid == 0) {
+			if(input) {
+				freopen(input_filename, "r", stdin);
+			}
+			if(output && append) {
+				//shit
+				freopen("temp.txt", "w+", stdout);
+			} else if(output) {
+				freopen(output_filename, "w+", stdout);
+			} else if(append) {
+				freopen(append_filename, "a+", stdout);
+			}
+			result = spawn_process(command, 0, 1, background);
+		} else {
+			if(output && append) {
+				copy_temp_file(output_filename, append_filename);
+			}
+		}
+  	}
+  	return result;
 }
 
 int internal_command(char **command) {
@@ -242,9 +235,10 @@ int check_append(char **command, char **append_filename) {
     return 0;
 }
 
-int spawn_process(char **command, int in, int out) {
+int spawn_process(char **command, int in, int out, int bg) {
 	pid_t pid;
 	int status;
+	int result = 0;
 
 	pid = fork();
 	if(pid == 0) {
@@ -259,13 +253,20 @@ int spawn_process(char **command, int in, int out) {
 			close(out);
 		}
 
-		execvp(command[0], command);
+		result = execvp(command[0], command);
 	} else {
 		// Parent
-		pid = waitpid(pid, &status, 0);
+		if(bg) {
+			waitpid(pid, &status, WNOHANG);
+		} else {
+			waitpid(pid, &status, 0);
+		}
 	}
 
-	return pid;
+	if(result < 0 || status != 0) {
+		return -1
+	}
+	return 0;
 }
 
 void sigchld_handler(int sig) {
@@ -337,6 +338,7 @@ int check_semi(char **command, char ***next_command) {
     return 0;
 }
 
+// run commands (recursively)
 int do_command(char **command) {
 	if(command == NULL) {
 		return 0;
