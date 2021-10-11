@@ -305,7 +305,7 @@ int copy_temp_file(char *output_filename, char *append_filename) {
 }
 
 int do_command(char **command) {
-	if(command == null) {
+	if(command == NULL) {
 		return 0;
 	}
 
@@ -318,17 +318,17 @@ int do_command(char **command) {
 	for(i = 0; command[i] != NULL; i++) {
 		if(strcmp(command[i], "&&") == 0) {
 			and = 1;
-			next = command[i + 1];
+			next = &command[i + 1];
 			command[i] = NULL;
 			break;
 		} else if(strcmp(command[i], "||") == 0) {
 			or = 1;
-			next = command[i + 1];
+			next = &command[i + 1];
 			command[i] = NULL;
 			break;
-		} else if(strcomp(command[i], ";") == 0) {
+		} else if(strcmp(command[i], ";") == 0) {
 			semi = 1;
-			next = command[i + 1];
+			next = &command[i + 1];
 			command[i] = NULL;
 			break;
 		} else {
@@ -338,7 +338,7 @@ int do_command(char **command) {
 		}
 	}
 
-	int result = spawn(command);
+	int result = spawn(command, 0, 1);
 
 	if(and) {
 		if(result < 0) {
@@ -355,7 +355,7 @@ int do_command(char **command) {
 	} else if(semi) {
 		return do_command(next);
 	} else {
-		return spawn(command, 0, 1);
+		return result;
 	}
 }
 
@@ -389,6 +389,7 @@ int main(int argc, char* argv[]) {
 		int status;
 		if(command != NULL) {
 			status = do_command(command);
+			printf("status: %d\n", status);
 		}
     }
 

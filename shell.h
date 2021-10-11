@@ -14,7 +14,7 @@
 
 char **c;
 
-int do_command(char **command, int in, int out);
+int spawn(char **command, int in, int out);
 int internal_command(char **command);
 int ampersand(char **command);
 int check_pipe(char **command, char ***next_command);
@@ -24,6 +24,7 @@ int check_append(char **command, char **output_filename);
 int spawn_process(char **command, int in, int out);
 void sigchld_handler(int sig);
 int copy_temp_file(char *output_filename, char *append_filename);
+int do_command(char **command);
 int set_command(char **command);
 char **get_command();
 
