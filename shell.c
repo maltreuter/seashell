@@ -318,18 +318,21 @@ int do_command(char **command) {
 			next = &command[i + 1];
 			free(command[i]);
 			command[i] = NULL;
+			command[i + 1] = NULL;
 			break;
 		} else if(strcmp(command[i], "||") == 0) {
 			or = 1;
 			next = &command[i + 1];
 			free(command[i]);
 			command[i] = NULL;
+			command[i + 1] = NULL;
 			break;
 		} else if(strcmp(command[i], ";") == 0) {
 			semi = 1;
 			next = &command[i + 1];
 			free(command[i]);
 			command[i] = NULL;
+			command[i + 1] = NULL;
 			break;
 		} else {
 			next = NULL;
