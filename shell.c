@@ -77,7 +77,7 @@ int spawn(char **command, int in, int out) {
 				dup2(in, 0);
 			}
 
-			result = spawn_process(command, in, 1, 0)
+			result = spawn_process(command, in, 1, 0);
 		} else {
 			// Parent
 			child_pid = waitpid(child_pid, &status, 0);
