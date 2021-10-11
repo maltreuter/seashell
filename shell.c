@@ -301,70 +301,69 @@ int copy_temp_file(char *output_filename, char *append_filename) {
 	return 0;
 }
 
+int check_and(char **command, char ***next_command) {
+    int i;
+    for(i = 0; command[i] != NULL; i++) {
+        if(strcmp(command[i], "&&") == 0 && command[i + 1] != NULL) {
+        	*next_command = &command[i + 1];
+            command[i] = NULL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int check_or(char **command, char ***next_command) {
+    int i;
+    for(i = 0; command[i] != NULL; i++) {
+        if(strcmp(command[i], "||") == 0 && command[i + 1] != NULL) {
+        	*next_command = &command[i + 1];
+            command[i] = NULL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int check_semi(char **command, char ***next_command) {
+    int i;
+    for(i = 0; command[i] != NULL; i++) {
+        if(strcmp(command[i], ";") == 0 && command[i + 1] != NULL) {
+        	*next_command = &command[i + 1];
+            command[i] = NULL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int do_command(char **command) {
 	if(command == NULL) {
 		return 0;
 	}
 
 	char **next;
-	int and = 0;
-	int or = 0;
-	int semi = 0;
+	int result;
 
-	int end;
-
-	int i;
-	for(i = 0; command[i] != NULL; i++) {
-		if(strcmp(command[i], "&&") == 0) {
-			and = 1;
-			next = &command[i + 1];
-			free(command[i]);
-			command[i] = NULL;
-			end = i;
-			break;
-		} else if(strcmp(command[i], "||") == 0) {
-			or = 1;
-			next = &command[i + 1];
-			free(command[i]);
-			command[i] = NULL;
-			end = i;
-			break;
-		} else if(strcmp(command[i], ";") == 0) {
-			semi = 1;
-			next = &command[i + 1];
-			free(command[i]);
-			command[i] = NULL;
-			end = i;
-			break;
-		} else {
-			next = NULL;
-			break;
-		}
-	}
-
-	char *current[end];
-	for(i = 0; i < end; i++) {
-		current[i] = command[i];
-	}
-
-	int result = spawn(current, 0, 1);
-
-	if(and) {
+	if(check_and(command, &next)) {
+		result = spawn(command, 0, 1);
 		if(result < 0) {
 			return result;
 		} else {
 			return do_command(next);
 		}
-	} else if(or) {
+	} else if(check_or(command, &next)) {
+		result = spawn(command, 0, 1);
 		if(result < 0) {
 			return do_command(next);
 		} else {
 			return result;
 		}
-	} else if(semi) {
+	} else if(check_semi(command, &next)) {
+		spawn(command, 0, 1);
 		return do_command(next);
 	} else {
-		return result;
+		return spawn(command, 0, 1);
 	}
 }
 
