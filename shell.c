@@ -55,7 +55,7 @@ int spawn(char **command, int in, int out) {
 				dup2(in, 0);
 			}
 
-			result = spawn_process(command, in, 1, 0);
+			result = spawn_process(command, in, out, 0);
 		} else {
 			// Parent
 			child_pid = waitpid(child_pid, &status, 0);
@@ -227,13 +227,13 @@ int spawn_process(char **command, int in, int out, int bg) {
 		}
 
 		if(input) {
-			freopen(input_filename, "r", in);
+			freopen(input_filename, "r", stdin);
 		}
 		if(output) {
-			freopen(output_filename, "w+", out);
+			freopen(output_filename, "w+", stdout);
 		}
 		if(append) {
-			freopen(append_filename, "a+", out);
+			freopen(append_filename, "a+", stdout);
 		}
 
 		result = execvp(command[0], command);
