@@ -10,12 +10,6 @@ int spawn(char **command, int in, int out) {
 
   	int i;
 
-  	int input;
-  	int output;
-  	int append;
-  	char *input_filename;
-  	char *output_filename;
-  	char *append_filename;
 
   	char **next_command = NULL;
 	printf("Running command: ");
@@ -29,11 +23,6 @@ int spawn(char **command, int in, int out) {
 		return 0;
 	}
 
-	// Check for input/output/append
-	input = input_redir(command, &input_filename);
-	append = check_append(command, &append_filename);
-	output = output_redir(command, &output_filename);
-
 	// Check for ampersand for backgrounding
 	int background = ampersand(command);
 
@@ -46,15 +35,6 @@ int spawn(char **command, int in, int out) {
 	if(pipes) {
 		child_pid = fork();
 		if(child_pid == 0) {
-			if(input) {
-				freopen(input_filename, "r", stdin);
-			}
-			if(output) {
-				freopen(output_filename, "w+", stdout);
-			} 
-			if(append) {
-				freopen(append_filename, "a+", stdout);
-			}
 			// Child
 			while(pipes) {
 				pipe(fd);
@@ -84,15 +64,6 @@ int spawn(char **command, int in, int out) {
 		// No pipes
 		child_pid = fork();
 		if(child_pid == 0) {
-			if(input) {
-				freopen(input_filename, "r", stdin);
-			}
-			if(output) {
-				freopen(output_filename, "w+", stdout);
-			}
-			if(append) {
-				freopen(append_filename, "a+", stdout);
-			}
 			result = spawn_process(command, 0, 1, background);
 		} else {
 			waitpid(child_pid, &status, 0);
@@ -230,8 +201,29 @@ int spawn_process(char **command, int in, int out, int bg) {
 	int status;
 	int result = 0;
 
+	int input;
+  	int output;
+  	int append;
+  	char *input_filename;
+  	char *output_filename;
+  	char *append_filename;
+
+	// Check for input/output/append
+	input = input_redir(command, &input_filename);
+	append = check_append(command, &append_filename);
+	output = output_redir(command, &output_filename);
+
 	pid = fork();
 	if(pid == 0) {
+		if(input) {
+			freopen(input_filename, "r", stdin);
+		}
+		if(output) {
+			freopen(output_filename, "w+", stdout);
+		}
+		if(append) {
+			freopen(append_filename, "a+", stdout);
+		}
 		// Child
 		if(in != 0) {
 			dup2(in, 0);
