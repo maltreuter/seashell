@@ -264,7 +264,7 @@ int spawn_process(char **command, int in, int out, int bg) {
 	}
 
 	if(result < 0 || status != 0) {
-		return -1
+		return -1;
 	}
 	return 0;
 }

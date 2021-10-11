@@ -21,7 +21,7 @@ int check_pipe(char **command, char ***next_command);
 int input_redir(char **command, char **input_filename);
 int output_redir(char **command, char **output_filename);
 int check_append(char **command, char **output_filename);
-int spawn_process(char **command, int in, int out);
+int spawn_process(char **command, int in, int out, int bg);
 void sigchld_handler(int sig);
 int copy_temp_file(char *output_filename, char *append_filename);
 int check_and(char **command, char ***next_command);
