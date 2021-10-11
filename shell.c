@@ -216,13 +216,13 @@ int spawn_process(char **command, int in, int out, int bg) {
 	pid = fork();
 	if(pid == 0) {
 		if(input) {
-			freopen(input_filename, "r", stdin);
+			freopen(input_filename, "r", in);
 		}
 		if(output) {
-			freopen(output_filename, "w+", stdout);
+			freopen(output_filename, "w+", out);
 		}
 		if(append) {
-			freopen(append_filename, "a+", stdout);
+			freopen(append_filename, "a+", out);
 		}
 		// Child
 		if(in != 0) {
