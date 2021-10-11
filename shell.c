@@ -333,7 +333,6 @@ int do_command(char **command) {
 			break;
 		} else {
 			next = NULL;
-			command[i] = NULL;
 			break;
 		}
 	}
