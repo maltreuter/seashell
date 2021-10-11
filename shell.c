@@ -49,10 +49,7 @@ int spawn(char **command, int in, int out) {
 			if(input) {
 				freopen(input_filename, "r", stdin);
 			}
-			if(output && append) {
-				//idk brah
-				freopen("temp.txt", "w+", stdout);
-			} else if(output) {
+			if(output) {
 				freopen(output_filename, "w+", stdout);
 			} else if(append) {
 				freopen(append_filename, "a+", stdout);
@@ -81,10 +78,6 @@ int spawn(char **command, int in, int out) {
 		} else {
 			// Parent
 			child_pid = waitpid(child_pid, &status, 0);
-
-			if(output && append) {
-				copy_temp_file(output_filename, append_filename);
-			}
 		}
 	} else {
 		// No pipes
@@ -93,10 +86,7 @@ int spawn(char **command, int in, int out) {
 			if(input) {
 				freopen(input_filename, "r", stdin);
 			}
-			if(output && append) {
-				//shit
-				freopen("temp.txt", "w+", stdout);
-			} else if(output) {
+			if(output) {
 				freopen(output_filename, "w+", stdout);
 			} else if(append) {
 				freopen(append_filename, "a+", stdout);
@@ -104,9 +94,6 @@ int spawn(char **command, int in, int out) {
 			result = spawn_process(command, 0, 1, background);
 		} else {
 			waitpid(child_pid, &status, 0);
-			if(output && append) {
-				copy_temp_file(output_filename, append_filename);
-			}
 		}
   	}
   	return result;
@@ -278,29 +265,6 @@ void sigchld_handler(int sig) {
 			break;
 		}
 	}
-}
-
-int copy_temp_file(char *output_filename, char *append_filename) {
-	FILE *of = fopen(output_filename, "w+");
-	FILE *af = fopen(append_filename, "a+");
-	FILE *temp = fopen("temp.txt", "r");
-
-	char c;
-
-	c = fgetc(temp);
-	while(c != EOF) {
-		fputc(c, of);
-		fputc(c, af);
-
-		c = fgetc(temp);
-	}
-
-	fclose(of);
-	fclose(af);
-	fclose(temp);
-	remove("temp.txt");
-
-	return 0;
 }
 
 int check_and(char **command, char ***next_command) {
