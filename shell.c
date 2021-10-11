@@ -18,9 +18,6 @@ int spawn(char **command, int in, int out) {
   	char *append_filename;
 
   	char **next_command = NULL;
-		for(i = 0; command[i] != NULL; i++) {
-      printf("Argument %d: %s\n", i, command[i]);
-    }
   	if(command[0] != NULL) {
       	printf("Running command: ");
       	for(i = 0; command[i] != NULL; i++) {
@@ -319,16 +316,19 @@ int do_command(char **command) {
 		if(strcmp(command[i], "&&") == 0) {
 			and = 1;
 			next = &command[i + 1];
+			free(command[i]);
 			command[i] = NULL;
 			break;
 		} else if(strcmp(command[i], "||") == 0) {
 			or = 1;
 			next = &command[i + 1];
+			free(command[i]);
 			command[i] = NULL;
 			break;
 		} else if(strcmp(command[i], ";") == 0) {
 			semi = 1;
 			next = &command[i + 1];
+			free(command[i]);
 			command[i] = NULL;
 			break;
 		} else {
