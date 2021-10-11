@@ -80,7 +80,7 @@ int spawn(char **command, int in, int out) {
 			result = spawn_process(command, in, 1, 0);
 		} else {
 			// Parent
-			// child_pid = waitpid(child_pid, &status, 0);
+			child_pid = waitpid(child_pid, &status, 0);
 
 			if(output && append) {
 				copy_temp_file(output_filename, append_filename);
@@ -103,6 +103,7 @@ int spawn(char **command, int in, int out) {
 			}
 			result = spawn_process(command, 0, 1, background);
 		} else {
+			waitpid(child_pid, &status, 0);
 			if(output && append) {
 				copy_temp_file(output_filename, append_filename);
 			}
@@ -388,7 +389,7 @@ int main(int argc, char* argv[]) {
 	int result;
 	char **command = NULL;
 
-	// signal(SIGCHLD, sigchld_handler);
+	signal(SIGCHLD, sigchld_handler);
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 
