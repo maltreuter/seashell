@@ -3,7 +3,7 @@
 extern int get_input();
 
 // run commands (recursively)
-int do_command(char **command, int in, int out) {
+int spawn(char **command, int in, int out) {
 
   	pid_t child_pid;
   	int status;
@@ -304,6 +304,61 @@ int copy_temp_file(char *output_filename, char *append_filename) {
 	return 0;
 }
 
+int do_command(char **command) {
+	if(command == null) {
+		return 0;
+	}
+
+	char **next;
+	int and = 0;
+	int or = 0;
+	int semi = 0;
+
+	int i;
+	for(i = 0; command[i] != NULL; i++) {
+		if(strcmp(command[i], "&&") == 0) {
+			and = 1;
+			next = command[i + 1];
+			command[i] = NULL;
+			break;
+		} else if(strcmp(command[i], "||") == 0) {
+			or = 1;
+			next = command[i + 1];
+			command[i] = NULL;
+			break;
+		} else if(strcomp(command[i], ";") == 0) {
+			semi = 1;
+			next = command[i + 1];
+			command[i] = NULL;
+			break;
+		} else {
+			next = NULL;
+			command[i] = NULL;
+			break;
+		}
+	}
+
+	int result = spawn(command);
+
+	if(and) {
+		if(result < 0) {
+			return result;
+		} else {
+			return do_command(next);
+		}
+	} else if(or) {
+		if(result < 0) {
+			return do_command(next);
+		} else {
+			return result;
+		}
+	} else if(semi) {
+		return do_command(next);
+	} else {
+		return spawn(command, 0, 1);
+	}
+}
+
 int set_command(char **command) {
 	c = command;
 	return 0;
@@ -331,9 +386,9 @@ int main(int argc, char* argv[]) {
     	printf("->");
       	status = get_input();
 		command = get_command();
-
+		int status;
 		if(command != NULL) {
-			do_command(command, STDIN_FILENO, STDOUT_FILENO);
+			status = do_command(command);
 		}
     }
 
