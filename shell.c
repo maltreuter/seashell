@@ -385,8 +385,8 @@ char **get_command() {
 
 int main(int argc, char* argv[]) {
     int status;
+	int result;
 	char **command = NULL;
-	int i;
 
 	signal(SIGCHLD, sigchld_handler);
 
@@ -398,8 +398,8 @@ int main(int argc, char* argv[]) {
 		command = get_command();
 		int status;
 		if(command != NULL) {
-			status = do_command(command);
-			printf("status: %d\n", status);
+			result = do_command(command);
+			printf("status: %d\n", result);
 		}
     }
 
