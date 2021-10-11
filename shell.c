@@ -396,7 +396,6 @@ int main(int argc, char* argv[]) {
     	printf("->");
       	status = get_input();
 		command = get_command();
-		int status;
 		if(command != NULL) {
 			result = do_command(command);
 			printf("status: %d\n", result);
