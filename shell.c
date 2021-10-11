@@ -215,15 +215,6 @@ int spawn_process(char **command, int in, int out, int bg) {
 
 	pid = fork();
 	if(pid == 0) {
-		if(input) {
-			freopen(input_filename, "r", in);
-		}
-		if(output) {
-			freopen(output_filename, "w+", out);
-		}
-		if(append) {
-			freopen(append_filename, "a+", out);
-		}
 		// Child
 		if(in != 0) {
 			dup2(in, 0);
@@ -233,6 +224,16 @@ int spawn_process(char **command, int in, int out, int bg) {
 		if(out != 1) {
 			dup2(out, 1);
 			close(out);
+		}
+
+		if(input) {
+			freopen(input_filename, "r", in);
+		}
+		if(output) {
+			freopen(output_filename, "w+", out);
+		}
+		if(append) {
+			freopen(append_filename, "a+", out);
 		}
 
 		result = execvp(command[0], command);
