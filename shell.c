@@ -388,7 +388,7 @@ int main(int argc, char* argv[]) {
 	int result;
 	char **command = NULL;
 
-	signal(SIGCHLD, sigchld_handler);
+	// signal(SIGCHLD, sigchld_handler);
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 
@@ -398,7 +398,7 @@ int main(int argc, char* argv[]) {
 		command = get_command();
 		if(command != NULL) {
 			result = do_command(command);
-			printf("status: %d\n", result);
+			printf("result: %d\n", result);
 		}
     }
 
