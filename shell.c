@@ -51,7 +51,8 @@ int spawn(char **command, int in, int out) {
 			}
 			if(output) {
 				freopen(output_filename, "w+", stdout);
-			} else if(append) {
+			} 
+			if(append) {
 				freopen(append_filename, "a+", stdout);
 			}
 			// Child
@@ -88,7 +89,8 @@ int spawn(char **command, int in, int out) {
 			}
 			if(output) {
 				freopen(output_filename, "w+", stdout);
-			} else if(append) {
+			}
+			if(append) {
 				freopen(append_filename, "a+", stdout);
 			}
 			result = spawn_process(command, 0, 1, background);
