@@ -80,7 +80,7 @@ int spawn(char **command, int in, int out) {
 			result = spawn_process(command, in, 1, 0);
 		} else {
 			// Parent
-			child_pid = waitpid(child_pid, &status, 0);
+			// child_pid = waitpid(child_pid, &status, 0);
 
 			if(output && append) {
 				copy_temp_file(output_filename, append_filename);
