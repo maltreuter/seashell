@@ -311,6 +311,8 @@ int do_command(char **command) {
 	int or = 0;
 	int semi = 0;
 
+	int end;
+
 	int i;
 	for(i = 0; command[i] != NULL; i++) {
 		if(strcmp(command[i], "&&") == 0) {
@@ -318,21 +320,21 @@ int do_command(char **command) {
 			next = &command[i + 1];
 			free(command[i]);
 			command[i] = NULL;
-			command[i + 1] = NULL;
+			end = i;
 			break;
 		} else if(strcmp(command[i], "||") == 0) {
 			or = 1;
 			next = &command[i + 1];
 			free(command[i]);
 			command[i] = NULL;
-			command[i + 1] = NULL;
+			end = i;
 			break;
 		} else if(strcmp(command[i], ";") == 0) {
 			semi = 1;
 			next = &command[i + 1];
 			free(command[i]);
 			command[i] = NULL;
-			command[i + 1] = NULL;
+			end = i;
 			break;
 		} else {
 			next = NULL;
@@ -340,7 +342,12 @@ int do_command(char **command) {
 		}
 	}
 
-	int result = spawn(command, 0, 1);
+	char *current[end];
+	for(i = 0; i < end; i++) {
+		current[i] = command[i];
+	}
+
+	int result = spawn(current, 0, 1);
 
 	if(and) {
 		if(result < 0) {
