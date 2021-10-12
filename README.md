@@ -10,7 +10,7 @@ cs 452 shell
 - [ ] memory leaks
 
 - [ ] parens
-- [ ] semi colons
-- [ ] && and ||
+- [x] semi colons
+- [x] && and ||
 
 yeet
