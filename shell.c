@@ -339,26 +339,23 @@ int do_command(char **command) {
 	int result = 0;
 
 	if(check_and(command, &next)) {
-		printf("");
-		result = spawn(command, 0, 1);
+		result = do_command(command);
 		if(result < 0) {
 			return result;
 		} else {
 			return do_command(next);
 		}
 	} else if(check_or(command, &next)) {
-		printf("");
-		result = spawn(command, 0, 1);
+		result = do_command(command);
 		if(result < 0) {
 			return do_command(next);
 		} else {
 			return result;
 		}
 	} else if(check_semi(command, &next)) {
-		spawn(command, 0, 1);
+		do_command(command);
 		return do_command(next);
 	} else {
-		printf("");	//This is needed for some god forsaken reason so that WIFSIGNALED doesn't return true
 		return spawn(command, 0, 1);
 	}
 }
