@@ -374,7 +374,7 @@ int main(int argc, char* argv[]) {
 		if(command != NULL) {
 			result = do_command(command);
 			if(result == -1) {
-				printf("command failed");
+				printf("command failed\n");
 			}
 		}
     }
