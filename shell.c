@@ -51,12 +51,10 @@ int spawn(char **command, int in, int out) {
 				if(input) {
 					freopen(input_filename, "r", stdin);
 				}
-				if(output && append) {
-					//idk brah
-					freopen("temp.txt", "w+", stdout);
-				} else if(output) {
+				if(output) {
 					freopen(output_filename, "w+", stdout);
-				} else if(append) {
+				}
+				if(append) {
 					freopen(append_filename, "a+", stdout);
 				}
 				// Child
@@ -86,10 +84,6 @@ int spawn(char **command, int in, int out) {
 			} else {
 				// Parent
 				child_pid = waitpid(child_pid, &status, 0);
-
-				if(output && append) {
-					copy_temp_file(output_filename, append_filename);
-				}
 			}
 		} else {
 			// No pipes
@@ -98,12 +92,10 @@ int spawn(char **command, int in, int out) {
 				if(input) {
 					freopen(input_filename, "r", stdin);
 				}
-				if(output && append) {
-					//shit
-					freopen("temp.txt", "w+", stdout);
-				} else if(output) {
+				if(output) {
 					freopen(output_filename, "w+", stdout);
-				} else if(append) {
+				} 
+				if(append) {
 					freopen(append_filename, "a+", stdout);
 				}
 				result = execvp(command[0], command);
@@ -112,9 +104,6 @@ int spawn(char **command, int in, int out) {
 					waitpid(child_pid, &status, WNOHANG);
 				} else {
 					waitpid(child_pid, &status, 0);
-				}
-				if(output && append) {
-					copy_temp_file(output_filename, append_filename);
 				}
 			}
 		}
@@ -289,29 +278,6 @@ void sigchld_handler(int sig) {
 	}
 }
 
-int copy_temp_file(char *output_filename, char *append_filename) {
-	FILE *of = fopen(output_filename, "w+");
-	FILE *af = fopen(append_filename, "a+");
-	FILE *temp = fopen("temp.txt", "r");
-
-	char c;
-
-	c = fgetc(temp);
-	while(c != EOF) {
-		fputc(c, of);
-		fputc(c, af);
-
-		c = fgetc(temp);
-	}
-
-	fclose(of);
-	fclose(af);
-	fclose(temp);
-	remove("temp.txt");
-
-	return 0;
-}
-
 int check_and(char **command, char ***next_command) {
     int i;
     for(i = 0; command[i] != NULL; i++) {
@@ -395,7 +361,6 @@ char **get_command() {
 int main(int argc, char* argv[]) {
     int status;
 	char **command = NULL;
-	int i;
 
 	signal(SIGCHLD, sigchld_handler);
 
