@@ -132,6 +132,13 @@ int spawn(char **command, int in, int out) {
 		}
 	}
 
+	if(WIFSIGNALED(status)) {
+		int signal = WTERMSIG(status);
+		if(strcmp(strsignal(signal), "Interrupt")) {
+			return 0;
+		}
+	}
+
 	return -1;
 }
 
