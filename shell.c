@@ -370,10 +370,12 @@ int main(int argc, char* argv[]) {
     	printf("->");
       	status = get_input();
 		command = get_command();
-		int status;
+		int result;
 		if(command != NULL) {
-			status = do_command(command);
-			printf("status: %d\n", status);
+			result = do_command(command);
+			if(result == -1) {
+				printf("command failed");
+			}
 		}
     }
 
