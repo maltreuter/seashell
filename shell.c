@@ -62,9 +62,6 @@ int spawn(char **command, int in, int out) {
 					pipe(fd);
 
 					result = spawn_process(current, in, fd[1]);
-					if(result < 0) {
-						return -1;
-					}
 
 					close(fd[1]);
 					in = fd[0];
@@ -94,7 +91,7 @@ int spawn(char **command, int in, int out) {
 				}
 				if(output) {
 					freopen(output_filename, "w+", stdout);
-				} 
+				}
 				if(append) {
 					freopen(append_filename, "a+", stdout);
 				}
@@ -108,10 +105,20 @@ int spawn(char **command, int in, int out) {
 			}
 		}
   	}
-  	if(result < 0 || status != 0) {
+
+  	if(result < 0) {
 	  	return -1;
   	}
-  	return 0;
+
+	if(WIFEXITED(status)) {
+		if(WEXITSTATUS(status) == 0) {
+			return 0;
+		}
+	} else {
+		return -1;
+	}
+
+	return 0;
 }
 
 int internal_command(char **command) {
@@ -262,9 +269,18 @@ int spawn_process(char **command, int in, int out) {
 		pid = waitpid(pid, &status, 0);
 	}
 
-	if(result < 0 || status != 0) {
+	if(result < 0) {
 		return -1;
 	}
+
+	if(WIFEXITED(status)) {
+		if(WEXITSTATUS(status) == 0) {
+			return 0;
+		}
+	} else {
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -320,9 +336,10 @@ int do_command(char **command) {
 	}
 
 	char **next;
-	int result;
+	int result = 0;
 
 	if(check_and(command, &next)) {
+		printf("");
 		result = spawn(command, 0, 1);
 		if(result < 0) {
 			return result;
@@ -330,6 +347,7 @@ int do_command(char **command) {
 			return do_command(next);
 		}
 	} else if(check_or(command, &next)) {
+		printf("");
 		result = spawn(command, 0, 1);
 		if(result < 0) {
 			return do_command(next);
@@ -340,6 +358,7 @@ int do_command(char **command) {
 		spawn(command, 0, 1);
 		return do_command(next);
 	} else {
+		printf("");	//This is needed for some god forsaken reason so that WIFSIGNALED doesn't return true
 		return spawn(command, 0, 1);
 	}
 }
@@ -360,6 +379,7 @@ char **get_command() {
 
 int main(int argc, char* argv[]) {
     int status;
+	int result;
 	char **command = NULL;
 
 	signal(SIGCHLD, sigchld_handler);
@@ -370,11 +390,11 @@ int main(int argc, char* argv[]) {
     	printf("->");
       	status = get_input();
 		command = get_command();
-		int result;
+		result = 0;
 		if(command != NULL) {
 			result = do_command(command);
 			if(result == -1) {
-				printf("command failed\n");
+				printf("command failed: %d\n", result);
 			}
 		}
     }

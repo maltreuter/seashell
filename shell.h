@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <stdint.h>
 
 #define MAX_ARG_COUNT 128
 #define SHELL_PID getpid()
