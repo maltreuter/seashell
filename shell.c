@@ -45,6 +45,8 @@ int spawn(char **command, int in, int out) {
 		char **current = command;
 		int fd[2];
 
+		waitpid(WAIT_ANY, &status, WNOHANG);
+
 		if(pipes) {
 			child_pid = fork();
 			if(child_pid == 0) {
@@ -98,8 +100,20 @@ int spawn(char **command, int in, int out) {
 				result = execvp(command[0], command);
 			} else {
 				if(background){
+					setpgid(child_pid, child_pid);
+
+					tcsetpgrp(STDOUT_FILENO, SHELL_PID);
+					tcsetpgrp(STDIN_FILENO, SHELL_PID);
+
+					printf("backgrounded pid: %d\n", child_pid);
+
 					waitpid(child_pid, &status, WNOHANG);
 				} else {
+					tcsetpgrp(STDIN_FILENO, SHELL_PID);
+					tcsetpgrp(STDOUT_FILENO, SHELL_PID);
+
+					printf("simple pid: %d\n", child_pid);
+
 					waitpid(child_pid, &status, 0);
 				}
 			}
@@ -141,7 +155,6 @@ int ampersand(char **command) {
 	int i;
 	for(i = 0; command[i] != NULL; i++) {
 		if(strcmp(command[i], "&") == 0) {
-			printf("background process\n");
 			// Free &
 			free(command[i]);
 
@@ -285,9 +298,10 @@ int spawn_process(char **command, int in, int out) {
 }
 
 void sigchld_handler(int sig) {
+	int status;
 	while(1) {
-		pid_t pid = waitpid(-1, NULL, 0);
-
+		pid_t pid = waitpid(WAIT_ANY, &status, WUNTRACED);
+		printf("does this even work: %d\n", pid);
 		if(pid < 0) {
 			break;
 		}
@@ -339,21 +353,21 @@ int do_command(char **command) {
 	int result = 0;
 
 	if(check_and(command, &next)) {
-		result = do_command(command);
+		result = spawn(command, 0, 1);
 		if(result < 0) {
 			return result;
 		} else {
 			return do_command(next);
 		}
 	} else if(check_or(command, &next)) {
-		result = do_command(command);
+		result = spawn(command, 0, 1);
 		if(result < 0) {
 			return do_command(next);
 		} else {
 			return result;
 		}
 	} else if(check_semi(command, &next)) {
-		do_command(command);
+		spawn(command, 0, 1);
 		return do_command(next);
 	} else {
 		return spawn(command, 0, 1);
@@ -379,9 +393,12 @@ int main(int argc, char* argv[]) {
 	int result;
 	char **command = NULL;
 
-	signal(SIGCHLD, sigchld_handler);
+	//signal(SIGCHLD, sigchld_handler);
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
+	setpgid(SHELL_PID, SHELL_PID);
+	tcsetpgrp(STDOUT_FILENO, SHELL_PID);
+	tcsetpgrp(STDIN_FILENO, SHELL_PID);
 
     while(1) {
     	printf("->");
