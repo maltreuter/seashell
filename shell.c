@@ -2,74 +2,120 @@
 
 extern int get_input();
 
+// run commands (recursively)
 int spawn(char **command, int in, int out) {
 
   	pid_t child_pid;
   	int status;
-	int result;
 
   	int i;
 
+  	int input;
+  	int output;
+  	int append;
+  	char *input_filename;
+  	char *output_filename;
+  	char *append_filename;
 
   	char **next_command = NULL;
-	printf("Running command: ");
-	for(i = 0; command[i] != NULL; i++) {
-		printf("%s ", command[i]);
-	}
-	printf("\n");
+  	if(command[0] != NULL) {
+      	printf("Running command: ");
+      	for(i = 0; command[i] != NULL; i++) {
+        	printf("%s ", command[i]);
+      	}
+      	printf("\n");
 
-	// Check for exit and cd
-	if(internal_command(command)) {
-		return 0;
-	}
+      	// Check for exit and cd
+      	if(internal_command(command)) {
+          	return 0;
+      	}
 
-	// Check for ampersand for backgrounding
-	int background = ampersand(command);
+      	// Check for input/output/append
+      	input = input_redir(command, &input_filename);
+      	append = check_append(command, &append_filename);
+      	output = output_redir(command, &output_filename);
 
-	// Check for pipes and get right side of pipe (next_command)
-	int pipes = check_pipe(command, &next_command);
+      	// Check for ampersand for backgrounding
+		int background = ampersand(command);
 
-	char **current = command;
-	int fd[2];
+      	// Check for pipes and get right side of pipe (next_command)
+      	int pipes = check_pipe(command, &next_command);
 
-	if(pipes) {
-		child_pid = fork();
-		if(child_pid == 0) {
-			// Child
-			while(pipes) {
-				pipe(fd);
+		char **current = command;
+		int fd[2];
 
-				result = spawn_process(current, in, fd[1], 0);
+		if(pipes) {
+			child_pid = fork();
+			if(child_pid == 0) {
+				if(input) {
+					freopen(input_filename, "r", stdin);
+				}
+				if(output && append) {
+					//idk brah
+					freopen("temp.txt", "w+", stdout);
+				} else if(output) {
+					freopen(output_filename, "w+", stdout);
+				} else if(append) {
+					freopen(append_filename, "a+", stdout);
+				}
+				// Child
+				while(pipes) {
+					pipe(fd);
 
-				close(fd[1]);
-				in = fd[0];
+					spawn_process(current, in, fd[1]);
 
-				// Get next command
-				current = next_command;
-				next_command = NULL;
-				pipes = check_pipe(current, &next_command);
+					close(fd[1]);
+					in = fd[0];
+
+					// Get next command
+					current = next_command;
+					next_command = NULL;
+					pipes = check_pipe(current, &next_command);
+				}
+
+				// Last command
+				if(in != 0) {
+					dup2(in, 0);
+				}
+
+				execvp(current[0], current);
+			} else {
+				// Parent
+				child_pid = waitpid(child_pid, &status, 0);
+
+				if(output && append) {
+					copy_temp_file(output_filename, append_filename);
+				}
 			}
-
-			// Last command
-			if(in != 0) {
-				dup2(in, 0);
+		} else {
+			// No pipes
+			child_pid = fork();
+			if(child_pid == 0) {
+				if(input) {
+					freopen(input_filename, "r", stdin);
+				}
+				if(output && append) {
+					//shit
+					freopen("temp.txt", "w+", stdout);
+				} else if(output) {
+					freopen(output_filename, "w+", stdout);
+				} else if(append) {
+					freopen(append_filename, "a+", stdout);
+				}
+				execvp(command[0], command);
+			} else {
+				if(background){
+					waitpid(child_pid, &status, WNOHANG);
+				} else {
+					waitpid(child_pid, &status, 0);
+				}
+				if(output && append) {
+					copy_temp_file(output_filename, append_filename);
+				}
 			}
-
-			result = spawn_process(command, in, 1, 0);
-		} else {
-			// Parent
-			child_pid = waitpid(child_pid, &status, 0);
 		}
-	} else {
-		// No pipes
-		child_pid = fork();
-		if(child_pid == 0) {
-			result = spawn_process(command, 0, 1, background);
-		} else {
-			waitpid(child_pid, &status, 0);
-		}
-  	}
-  	return result;
+  }
+  return 0;
 }
 
 int internal_command(char **command) {
@@ -196,34 +242,12 @@ int check_append(char **command, char **append_filename) {
     return 0;
 }
 
-int spawn_process(char **command, int in, int out, int bg) {
+int spawn_process(char **command, int in, int out) {
 	pid_t pid;
 	int status;
-	int result = 0;
-
-	int input;
-  	int output;
-  	int append;
-  	char *input_filename;
-  	char *output_filename;
-  	char *append_filename;
-
-	// Check for input/output/append
-	input = input_redir(command, &input_filename);
-	append = check_append(command, &append_filename);
-	output = output_redir(command, &output_filename);
 
 	pid = fork();
 	if(pid == 0) {
-		if(input) {
-			freopen(input_filename, "r", in);
-		}
-		if(output) {
-			freopen(output_filename, "w+", out);
-		}
-		if(append) {
-			freopen(append_filename, "a+", out);
-		}
 		// Child
 		if(in != 0) {
 			dup2(in, 0);
@@ -235,20 +259,13 @@ int spawn_process(char **command, int in, int out, int bg) {
 			close(out);
 		}
 
-		result = execvp(command[0], command);
+		execvp(command[0], command);
 	} else {
 		// Parent
-		if(bg) {
-			waitpid(pid, &status, WNOHANG);
-		} else {
-			waitpid(pid, &status, 0);
-		}
+		pid = waitpid(pid, &status, 0);
 	}
 
-	if(result < 0 || status != 0) {
-		return -1;
-	}
-	return 0;
+	return pid;
 }
 
 void sigchld_handler(int sig) {
@@ -259,6 +276,29 @@ void sigchld_handler(int sig) {
 			break;
 		}
 	}
+}
+
+int copy_temp_file(char *output_filename, char *append_filename) {
+	FILE *of = fopen(output_filename, "w+");
+	FILE *af = fopen(append_filename, "a+");
+	FILE *temp = fopen("temp.txt", "r");
+
+	char c;
+
+	c = fgetc(temp);
+	while(c != EOF) {
+		fputc(c, of);
+		fputc(c, af);
+
+		c = fgetc(temp);
+	}
+
+	fclose(of);
+	fclose(af);
+	fclose(temp);
+	remove("temp.txt");
+
+	return 0;
 }
 
 int check_and(char **command, char ***next_command) {
@@ -297,7 +337,6 @@ int check_semi(char **command, char ***next_command) {
     return 0;
 }
 
-// run commands (recursively)
 int do_command(char **command) {
 	if(command == NULL) {
 		return 0;
@@ -344,8 +383,8 @@ char **get_command() {
 
 int main(int argc, char* argv[]) {
     int status;
-	int result;
 	char **command = NULL;
+	int i;
 
 	signal(SIGCHLD, sigchld_handler);
 
@@ -355,9 +394,10 @@ int main(int argc, char* argv[]) {
     	printf("->");
       	status = get_input();
 		command = get_command();
+		int status;
 		if(command != NULL) {
-			result = do_command(command);
-			printf("result: %d\n", result);
+			status = do_command(command);
+			printf("status: %d\n", status);
 		}
     }
 
