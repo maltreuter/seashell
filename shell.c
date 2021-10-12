@@ -113,12 +113,12 @@ int spawn(char **command, int in, int out) {
 	if(WIFEXITED(status)) {
 		if(WEXITSTATUS(status) == 0) {
 			return 0;
+		} else {
+			return -1;
 		}
-	} else {
-		return -1;
 	}
 
-	return 0;
+	return -1;
 }
 
 int internal_command(char **command) {
@@ -276,12 +276,12 @@ int spawn_process(char **command, int in, int out) {
 	if(WIFEXITED(status)) {
 		if(WEXITSTATUS(status) == 0) {
 			return 0;
+		} else {
+			return -1;
 		}
-	} else {
-		return -1;
 	}
 
-	return 0;
+	return -1;
 }
 
 void sigchld_handler(int sig) {
