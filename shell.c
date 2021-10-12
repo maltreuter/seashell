@@ -7,6 +7,7 @@ int spawn(char **command, int in, int out) {
 
   	pid_t child_pid;
   	int status;
+	int result = 0;
 
   	int i;
 
@@ -62,7 +63,10 @@ int spawn(char **command, int in, int out) {
 				while(pipes) {
 					pipe(fd);
 
-					spawn_process(current, in, fd[1]);
+					result = spawn_process(current, in, fd[1]);
+					if(result < 0) {
+						return -1;
+					}
 
 					close(fd[1]);
 					in = fd[0];
@@ -78,7 +82,7 @@ int spawn(char **command, int in, int out) {
 					dup2(in, 0);
 				}
 
-				execvp(current[0], current);
+				result = execvp(current[0], current);
 			} else {
 				// Parent
 				child_pid = waitpid(child_pid, &status, 0);
@@ -102,7 +106,7 @@ int spawn(char **command, int in, int out) {
 				} else if(append) {
 					freopen(append_filename, "a+", stdout);
 				}
-				execvp(command[0], command);
+				result = execvp(command[0], command);
 			} else {
 				if(background){
 					waitpid(child_pid, &status, WNOHANG);
@@ -114,8 +118,11 @@ int spawn(char **command, int in, int out) {
 				}
 			}
 		}
-  }
-  return 0;
+  	}
+  	if(result < 0 || status != 0) {
+	  	return -1;
+  	}
+  	return 0;
 }
 
 int internal_command(char **command) {
@@ -245,6 +252,7 @@ int check_append(char **command, char **append_filename) {
 int spawn_process(char **command, int in, int out) {
 	pid_t pid;
 	int status;
+	int result = 0;
 
 	pid = fork();
 	if(pid == 0) {
@@ -259,13 +267,16 @@ int spawn_process(char **command, int in, int out) {
 			close(out);
 		}
 
-		execvp(command[0], command);
+		result = execvp(command[0], command);
 	} else {
 		// Parent
 		pid = waitpid(pid, &status, 0);
 	}
 
-	return pid;
+	if(result < 0 || status != 0) {
+		return -1;
+	}
+	return 0;
 }
 
 void sigchld_handler(int sig) {
