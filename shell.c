@@ -120,6 +120,13 @@ int spawn(char **command, int in, int out) {
 		}
   	}
 
+	if(next_command != NULL) {
+		collect_garbage(next_command);
+	}
+	if(command != NULL) {
+		collect_garbage(command);
+	}
+
   	if(result < 0) {
 	  	return -1;
   	}
@@ -132,11 +139,8 @@ int spawn(char **command, int in, int out) {
 		}
 	}
 
-	if(WIFSIGNALED(status)) {
-		int signal = WTERMSIG(status);
-		if(strcmp(strsignal(signal), "Interrupt")) {
-			return 0;
-		}
+	if(WIFSTOPPED(status)) {
+		printf("wifstopped\n");
 	}
 
 	return -1;
@@ -395,6 +399,16 @@ char **get_command() {
 	return command;
 }
 
+int collect_garbage(char **command) {
+	int i;
+
+	for(i = 0; command[i] != NULL; i++) {
+		printf("%s\n", command[i]);
+		free(command[i]);
+	}
+	return 0;
+}
+
 int main(int argc, char* argv[]) {
     int status;
 	int result;
@@ -418,6 +432,7 @@ int main(int argc, char* argv[]) {
 				printf("command failed: %d\n", result);
 			}
 		}
+
     }
 
     return status;
