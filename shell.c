@@ -1,6 +1,7 @@
 #include "shell.h"
 
 extern int get_input();
+extern int stop_lex();
 
 // run commands (recursively)
 int spawn(char **command, int in, int out) {
@@ -118,7 +119,20 @@ int spawn(char **command, int in, int out) {
 				}
 			}
 		}
+
+		// Free filenames that got split off during check
+		if(input) {
+			free(input_filename);
+		}
+		if(output) {
+			free(output_filename);
+		}
+		if(append) {
+			free(append_filename);
+		}
   	}
+
+
 
 	if(next_command != NULL) {
 		collect_garbage(next_command);
@@ -144,129 +158,6 @@ int spawn(char **command, int in, int out) {
 	}
 
 	return -1;
-}
-
-int internal_command(char **command) {
-    if(strcmp(command[0], "exit") == 0) {
-        exit(0);
-    } else if(strcmp(command[0], "cd") == 0) {
-        if(command[1] == NULL) {
-            printf("cd error: no directory provided\n");
-        } else {
-            if(chdir(command[1]) != 0) {
-                printf("cd error: directory doesn't exist\n");
-            }
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int ampersand(char **command) {
-	int i;
-	for(i = 0; command[i] != NULL; i++) {
-		if(strcmp(command[i], "&") == 0) {
-			// Free &
-			free(command[i]);
-
-			// Adjust the rest of the command?
-			// will there ever be anything after the &?
-			command[i] = NULL;
-
-			return 1;
-		}
-	}
-    return 0;
-}
-
-int check_pipe(char **command, char ***next_command) {
-    int i;
-    for(i = 0; command[i] != NULL; i++) {
-        if(strcmp(command[i], "|") == 0 && command[i + 1] != NULL) {
-        	*next_command = &command[i + 1];
-            command[i] = NULL;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int input_redir(char **command, char **input_filename) {
-    int i;
-    int j;
-
-    for(i = 0; command[i] != NULL; i++) {
-        // Look for the <
-        if(command[i][0] == '<') {
-            free(command[i]);
-
-            // Read the filename
-            if(command[i + 1] != NULL) {
-                *input_filename = command[i + 1];
-            } else {
-                return -1;
-            }
-
-            // Adjust the rest of the arguments in the array
-            for(j = i; command[j - 1] != NULL; j++) {
-                command[j] = command[j + 2];
-            }
-
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int output_redir(char **command, char **output_filename) {
-    int i;
-    int j;
-
-    for(i = 0; command[i] != NULL; i++) {
-        // Look for the >
-        if(command[i][0] == '>') {
-            free(command[i]);
-
-            // Get the filename
-            if(command[i + 1] != NULL) {
-                *output_filename = command[i + 1];
-            } else {
-                return -1;
-            }
-
-            // Adjust the rest of the arguments in the array
-            for(j = i; command[j - 1] != NULL; j++) {
-                command[j] = command[j + 2];
-            }
-
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int check_append(char **command, char **append_filename) {
-    int i;
-    int j;
-
-    for(i = 0; command[i] != NULL; i++) {
-        if(command[i][0] == '>' && command[i][1] == '>') {
-            free(command[i]);
-
-            if(command[i + 1] != NULL) {
-                *append_filename = command[i + 1];
-            } else {
-                return -1;
-            }
-
-            for(j = i; command[j - 1] != NULL; j++) {
-                command[j] = command[j + 2];
-            }
-
-            return 1;
-        }
-    }
-    return 0;
 }
 
 int spawn_process(char **command, int in, int out) {
@@ -308,53 +199,6 @@ int spawn_process(char **command, int in, int out) {
 	return -1;
 }
 
-void sigchld_handler(int sig) {
-	int status;
-	while(1) {
-		pid_t pid = waitpid(WAIT_ANY, &status, WUNTRACED);
-		printf("does this even work: %d\n", pid);
-		if(pid < 0) {
-			break;
-		}
-	}
-}
-
-int check_and(char **command, char ***next_command) {
-    int i;
-    for(i = 0; command[i] != NULL; i++) {
-        if(strcmp(command[i], "&&") == 0 && command[i + 1] != NULL) {
-        	*next_command = &command[i + 1];
-            command[i] = NULL;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int check_or(char **command, char ***next_command) {
-    int i;
-    for(i = 0; command[i] != NULL; i++) {
-        if(strcmp(command[i], "||") == 0 && command[i + 1] != NULL) {
-        	*next_command = &command[i + 1];
-            command[i] = NULL;
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int check_semi(char **command, char ***next_command) {
-    int i;
-    for(i = 0; command[i] != NULL; i++) {
-        if(strcmp(command[i], ";") == 0 && command[i + 1] != NULL) {
-        	*next_command = &command[i + 1];
-            command[i] = NULL;
-            return 1;
-        }
-    }
-    return 0;
-}
-
 int do_command(char **command) {
 	if(command == NULL) {
 		return 0;
@@ -366,6 +210,7 @@ int do_command(char **command) {
 	if(check_and(command, &next)) {
 		result = spawn(command, 0, 1);
 		if(result < 0) {
+			collect_garbage(next);
 			return result;
 		} else {
 			return do_command(next);
@@ -375,6 +220,7 @@ int do_command(char **command) {
 		if(result < 0) {
 			return do_command(next);
 		} else {
+			collect_garbage(next);
 			return result;
 		}
 	} else if(check_semi(command, &next)) {
@@ -410,30 +256,39 @@ int collect_garbage(char **command) {
 }
 
 int main(int argc, char* argv[]) {
-    int status;
 	int result;
+	int status;
+	int exit = 0;
 	char **command = NULL;
-
-	//signal(SIGCHLD, sigchld_handler);
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 	setpgid(SHELL_PID, SHELL_PID);
 	tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 	tcsetpgrp(STDIN_FILENO, SHELL_PID);
 
-    while(1) {
+    while(!exit) {
     	printf("->");
       	status = get_input();
 		command = get_command();
 		result = 0;
-		if(command != NULL) {
+
+		if(command[0] == NULL) {
+			continue;
+		}
+
+		if(check_exit(command)) {
+			exit = 1;
+			collect_garbage(command);
+		} else {
 			result = do_command(command);
 			if(result == -1) {
 				printf("command failed: %d\n", result);
 			}
 		}
-
     }
 
-    return status;
+	stop_lex();
+	//collect_garbage(c);
+
+    return 0;
 }
