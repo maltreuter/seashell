@@ -17,8 +17,8 @@
 
 char **c;
 
-int spawn(char **command, int in, int out);
 int spawn_process(char **command, int in, int out);
+int spawn_pipe_process(char **command, int in, int out);
 int do_command(char **command);
 int set_command(char **command);
 char **get_command();

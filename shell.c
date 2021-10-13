@@ -3,8 +3,7 @@
 extern int get_input();
 extern int stop_lex();
 
-// run commands (recursively)
-int spawn(char **command, int in, int out) {
+int spawn_process(char **command, int in, int out) {
 
   	pid_t child_pid;
   	int status;
@@ -64,7 +63,7 @@ int spawn(char **command, int in, int out) {
 				while(pipes) {
 					pipe(fd);
 
-					result = spawn_process(current, in, fd[1]);
+					result = spawn_pipe_process(current, in, fd[1]);
 
 					close(fd[1]);
 					in = fd[0];
@@ -113,8 +112,6 @@ int spawn(char **command, int in, int out) {
 					tcsetpgrp(STDIN_FILENO, SHELL_PID);
 					tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 
-					printf("simple pid: %d\n", child_pid);
-
 					waitpid(child_pid, &status, 0);
 				}
 			}
@@ -153,14 +150,10 @@ int spawn(char **command, int in, int out) {
 		}
 	}
 
-	if(WIFSTOPPED(status)) {
-		printf("wifstopped\n");
-	}
-
 	return -1;
 }
 
-int spawn_process(char **command, int in, int out) {
+int spawn_pipe_process(char **command, int in, int out) {
 	pid_t pid;
 	int status;
 	int result = 0;
@@ -208,7 +201,7 @@ int do_command(char **command) {
 	int result = 0;
 
 	if(check_and(command, &next)) {
-		result = spawn(command, 0, 1);
+		result = spawn_process(command, 0, 1);
 		if(result < 0) {
 			collect_garbage(next);
 			return result;
@@ -216,7 +209,7 @@ int do_command(char **command) {
 			return do_command(next);
 		}
 	} else if(check_or(command, &next)) {
-		result = spawn(command, 0, 1);
+		result = spawn_process(command, 0, 1);
 		if(result < 0) {
 			return do_command(next);
 		} else {
@@ -224,10 +217,10 @@ int do_command(char **command) {
 			return result;
 		}
 	} else if(check_semi(command, &next)) {
-		spawn(command, 0, 1);
+		spawn_process(command, 0, 1);
 		return do_command(next);
 	} else {
-		return spawn(command, 0, 1);
+		return spawn_process(command, 0, 1);
 	}
 }
 
@@ -256,8 +249,6 @@ int collect_garbage(char **command) {
 }
 
 int main(int argc, char* argv[]) {
-	int result;
-	int status;
 	int exit = 0;
 	char **command = NULL;
 
@@ -268,9 +259,8 @@ int main(int argc, char* argv[]) {
 
     while(!exit) {
     	printf("->");
-      	status = get_input();
+      	get_input();
 		command = get_command();
-		result = 0;
 
 		if(command[0] == NULL) {
 			continue;
@@ -280,15 +270,11 @@ int main(int argc, char* argv[]) {
 			exit = 1;
 			collect_garbage(command);
 		} else {
-			result = do_command(command);
-			if(result == -1) {
-				printf("command failed: %d\n", result);
-			}
+			do_command(command);
 		}
     }
 
 	stop_lex();
-	//collect_garbage(c);
 
     return 0;
 }
