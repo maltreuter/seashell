@@ -1,5 +1,6 @@
 #include "parse.h"
 
+// Check for exit command to break main while loop
 int check_exit(char **command) {
 	if(strcmp(command[0], "exit") == 0) {
         return 1;
@@ -8,6 +9,7 @@ int check_exit(char **command) {
 	return 0;
 }
 
+// Check for cd command (would have done fg here as well)
 int internal_command(char **command) {
      if(strcmp(command[0], "cd") == 0) {
         if(command[1] == NULL) {
@@ -22,15 +24,12 @@ int internal_command(char **command) {
     return 0;
 }
 
+// Check for background process &
 int ampersand(char **command) {
 	int i;
 	for(i = 0; command[i] != NULL; i++) {
 		if(strcmp(command[i], "&") == 0) {
-			// Free &
 			free(command[i]);
-
-			// Adjust the rest of the command?
-			// will there ever be anything after the &?
 			command[i] = NULL;
 
 			return 1;
@@ -39,6 +38,7 @@ int ampersand(char **command) {
     return 0;
 }
 
+// Check for pipe |
 int check_pipe(char **command, char ***next_command) {
     int i;
     for(i = 0; command[i] != NULL; i++) {
@@ -46,12 +46,14 @@ int check_pipe(char **command, char ***next_command) {
         	*next_command = &command[i + 1];
 			free(command[i]);
             command[i] = NULL;
+
             return 1;
         }
     }
     return 0;
 }
 
+// Redirect process input
 int input_redir(char **command, char **input_filename) {
     int i;
     int j;
@@ -79,6 +81,7 @@ int input_redir(char **command, char **input_filename) {
     return 0;
 }
 
+// Redirect process output
 int output_redir(char **command, char **output_filename) {
     int i;
     int j;
@@ -106,6 +109,7 @@ int output_redir(char **command, char **output_filename) {
     return 0;
 }
 
+// Redirect process output but append
 int check_append(char **command, char **append_filename) {
     int i;
     int j;
@@ -130,6 +134,7 @@ int check_append(char **command, char **append_filename) {
     return 0;
 }
 
+// Check for && and get next command
 int check_and(char **command, char ***next_command) {
     int i;
     for(i = 0; command[i] != NULL; i++) {
@@ -143,6 +148,7 @@ int check_and(char **command, char ***next_command) {
     return 0;
 }
 
+// Check for || and get next command
 int check_or(char **command, char ***next_command) {
     int i;
     for(i = 0; command[i] != NULL; i++) {
@@ -156,6 +162,7 @@ int check_or(char **command, char ***next_command) {
     return 0;
 }
 
+// Check for ; and get next command
 int check_semi(char **command, char ***next_command) {
     int i;
     for(i = 0; command[i] != NULL; i++) {

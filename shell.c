@@ -68,7 +68,7 @@ int spawn_process(char **command, int in, int out) {
 				pipes = check_pipe(current, &next_command);
 			}
 
-			// Last command
+			// Last command of pipeline
 			if(in != 0) {
 				dup2(in, 0);
 			}
@@ -94,9 +94,11 @@ int spawn_process(char **command, int in, int out) {
 			result = execvp(command[0], command);
 		} else {
 			// No pipes parent
-			if(background){
+			if(background) {
+				// Create new group id for background process
 				setpgid(child_pid, child_pid);
 
+				// Give terminal control back to main
 				tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 				tcsetpgrp(STDIN_FILENO, SHELL_PID);
 
@@ -104,6 +106,7 @@ int spawn_process(char **command, int in, int out) {
 
 				waitpid(child_pid, &status, WNOHANG);
 			} else {
+				// Always give terminal control back to main
 				tcsetpgrp(STDIN_FILENO, SHELL_PID);
 				tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 
@@ -122,7 +125,6 @@ int spawn_process(char **command, int in, int out) {
 	if(append) {
 		free(append_filename);
 	}
-
 	if(next_command != NULL) {
 		collect_garbage(next_command);
 	}
@@ -172,10 +174,12 @@ int spawn_pipe_process(char **command, int in, int out) {
 		pid = waitpid(pid, &status, 0);
 	}
 
+	// Check result of execvp calls
 	if(result < 0) {
 		return -1;
 	}
 
+	// Check exit status of child process
 	if(WIFEXITED(status)) {
 		if(WEXITSTATUS(status) == 0) {
 			return 0;
@@ -262,9 +266,12 @@ int main(int argc, char* argv[]) {
 
     while(!exit) {
     	printf("->");
+
+		// Start lexer
       	get_input();
 		command = get_command();
 
+		// Empty command or print
 		if(command[0] == NULL) {
 			continue;
 		} else {
@@ -275,6 +282,7 @@ int main(int argc, char* argv[]) {
 		  	printf("\n");
 		}
 
+		// Break loop or do command
 		if(check_exit(command)) {
 			exit = 1;
 			collect_garbage(command);
@@ -283,6 +291,7 @@ int main(int argc, char* argv[]) {
 		}
     }
 
+	// Stop  lexer and free all lexer memory
 	stop_lex();
 
     return 0;
