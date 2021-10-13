@@ -3,13 +3,11 @@
 extern int get_input();
 extern int stop_lex();
 
+// Parse and execvp
 int spawn_process(char **command, int in, int out) {
-
   	pid_t child_pid;
   	int status;
 	int result = 0;
-
-  	int i;
 
   	int input;
   	int output;
@@ -19,117 +17,111 @@ int spawn_process(char **command, int in, int out) {
   	char *append_filename;
 
   	char **next_command = NULL;
-  	if(command[0] != NULL) {
-      	printf("Running command: ");
-      	for(i = 0; command[i] != NULL; i++) {
-        	printf("%s ", command[i]);
-      	}
-      	printf("\n");
 
-      	// Check for exit and cd
-      	if(internal_command(command)) {
-          	return 0;
-      	}
-
-      	// Check for input/output/append
-      	input = input_redir(command, &input_filename);
-      	append = check_append(command, &append_filename);
-      	output = output_redir(command, &output_filename);
-
-      	// Check for ampersand for backgrounding
-		int background = ampersand(command);
-
-      	// Check for pipes and get right side of pipe (next_command)
-      	int pipes = check_pipe(command, &next_command);
-
-		char **current = command;
-		int fd[2];
-
-		waitpid(WAIT_ANY, &status, WNOHANG);
-
-		if(pipes) {
-			child_pid = fork();
-			if(child_pid == 0) {
-				if(input) {
-					freopen(input_filename, "r", stdin);
-				}
-				if(output) {
-					freopen(output_filename, "w+", stdout);
-				}
-				if(append) {
-					freopen(append_filename, "a+", stdout);
-				}
-				// Child
-				while(pipes) {
-					pipe(fd);
-
-					result = spawn_pipe_process(current, in, fd[1]);
-
-					close(fd[1]);
-					in = fd[0];
-
-					// Get next command
-					current = next_command;
-					next_command = NULL;
-					pipes = check_pipe(current, &next_command);
-				}
-
-				// Last command
-				if(in != 0) {
-					dup2(in, 0);
-				}
-
-				result = execvp(current[0], current);
-			} else {
-				// Parent
-				child_pid = waitpid(child_pid, &status, 0);
-			}
-		} else {
-			// No pipes
-			child_pid = fork();
-			if(child_pid == 0) {
-				if(input) {
-					freopen(input_filename, "r", stdin);
-				}
-				if(output) {
-					freopen(output_filename, "w+", stdout);
-				}
-				if(append) {
-					freopen(append_filename, "a+", stdout);
-				}
-				result = execvp(command[0], command);
-			} else {
-				if(background){
-					setpgid(child_pid, child_pid);
-
-					tcsetpgrp(STDOUT_FILENO, SHELL_PID);
-					tcsetpgrp(STDIN_FILENO, SHELL_PID);
-
-					printf("backgrounded pid: %d\n", child_pid);
-
-					waitpid(child_pid, &status, WNOHANG);
-				} else {
-					tcsetpgrp(STDIN_FILENO, SHELL_PID);
-					tcsetpgrp(STDOUT_FILENO, SHELL_PID);
-
-					waitpid(child_pid, &status, 0);
-				}
-			}
-		}
-
-		// Free filenames that got split off during check
-		if(input) {
-			free(input_filename);
-		}
-		if(output) {
-			free(output_filename);
-		}
-		if(append) {
-			free(append_filename);
-		}
+  	// Check for cd
+  	if(internal_command(command)) {
+      	return 0;
   	}
 
+  	// Check for input/output/append
+  	input = input_redir(command, &input_filename);
+  	append = check_append(command, &append_filename);
+  	output = output_redir(command, &output_filename);
 
+  	// Check for ampersand for backgrounding
+	int background = ampersand(command);
+
+  	// Check for pipes and get right side of pipe (next_command)
+  	int pipes = check_pipe(command, &next_command);
+
+	char **current = command;
+	int fd[2];
+
+	// Reap em
+	waitpid(WAIT_ANY, &status, WNOHANG);
+
+	if(pipes) {
+		// Pipe child
+		child_pid = fork();
+		if(child_pid == 0) {
+			if(input) {
+				freopen(input_filename, "r", stdin);
+			}
+			if(output) {
+				freopen(output_filename, "w+", stdout);
+			}
+			if(append) {
+				freopen(append_filename, "a+", stdout);
+			}
+
+			while(pipes) {
+				pipe(fd);
+
+				result = spawn_pipe_process(current, in, fd[1]);
+
+				close(fd[1]);
+				in = fd[0];
+
+				// Get next command
+				current = next_command;
+				next_command = NULL;
+				pipes = check_pipe(current, &next_command);
+			}
+
+			// Last command
+			if(in != 0) {
+				dup2(in, 0);
+			}
+
+			result = execvp(current[0], current);
+		} else {
+			// Pipe parent
+			child_pid = waitpid(child_pid, &status, 0);
+		}
+	} else {
+		// No pipes child
+		child_pid = fork();
+		if(child_pid == 0) {
+			if(input) {
+				freopen(input_filename, "r", stdin);
+			}
+			if(output) {
+				freopen(output_filename, "w+", stdout);
+			}
+			if(append) {
+				freopen(append_filename, "a+", stdout);
+			}
+			result = execvp(command[0], command);
+		} else {
+			// No pipes parent
+			if(background){
+				setpgid(child_pid, child_pid);
+
+				tcsetpgrp(STDOUT_FILENO, SHELL_PID);
+				tcsetpgrp(STDIN_FILENO, SHELL_PID);
+
+				printf("backgrounded pid: %d\n", child_pid);
+
+				waitpid(child_pid, &status, WNOHANG);
+			} else {
+				tcsetpgrp(STDIN_FILENO, SHELL_PID);
+				tcsetpgrp(STDOUT_FILENO, SHELL_PID);
+
+				waitpid(child_pid, &status, 0);
+			}
+		}
+	}
+
+	// Free filenames and commands
+	if(input) {
+		free(input_filename);
+	}
+	if(output) {
+		free(output_filename);
+	}
+	if(append) {
+		free(append_filename);
+	}
 
 	if(next_command != NULL) {
 		collect_garbage(next_command);
@@ -138,10 +130,12 @@ int spawn_process(char **command, int in, int out) {
 		collect_garbage(command);
 	}
 
+	// Check result of execvp calls
   	if(result < 0) {
 	  	return -1;
   	}
 
+	// Check exit status of child process
 	if(WIFEXITED(status)) {
 		if(WEXITSTATUS(status) == 0) {
 			return 0;
@@ -153,6 +147,7 @@ int spawn_process(char **command, int in, int out) {
 	return -1;
 }
 
+// Execvp helper for pipelines
 int spawn_pipe_process(char **command, int in, int out) {
 	pid_t pid;
 	int status;
@@ -192,6 +187,9 @@ int spawn_pipe_process(char **command, int in, int out) {
 	return -1;
 }
 
+// Parse for &&, ||, or ;
+// Send command to spawn_process for execvp
+// Recursive
 int do_command(char **command) {
 	if(command == NULL) {
 		return 0;
@@ -224,11 +222,13 @@ int do_command(char **command) {
 	}
 }
 
+// Pass command from lexer to global char **c
 int set_command(char **command) {
 	c = command;
 	return 0;
 }
 
+// Get and clear command from global char **c
 char **get_command() {
 	char **command = c;
 	if(command != NULL) {
@@ -238,11 +238,11 @@ char **get_command() {
 	return command;
 }
 
+// Free commands when finished with them
 int collect_garbage(char **command) {
 	int i;
 
 	for(i = 0; command[i] != NULL; i++) {
-		printf("%s\n", command[i]);
 		free(command[i]);
 	}
 	return 0;
@@ -251,8 +251,11 @@ int collect_garbage(char **command) {
 int main(int argc, char* argv[]) {
 	int exit = 0;
 	char **command = NULL;
+	int i;
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
+
+	// Set main process group and give group terminal control
 	setpgid(SHELL_PID, SHELL_PID);
 	tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 	tcsetpgrp(STDIN_FILENO, SHELL_PID);
@@ -264,6 +267,12 @@ int main(int argc, char* argv[]) {
 
 		if(command[0] == NULL) {
 			continue;
+		} else {
+			printf("Running command: ");
+		  	for(i = 0; command[i] != NULL; i++) {
+		    	printf("%s ", command[i]);
+		  	}
+		  	printf("\n");
 		}
 
 		if(check_exit(command)) {
