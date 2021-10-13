@@ -5,7 +5,7 @@ cs 452 shell
 - [x] internal shell commands (exit and cd)
 - [x] input, output, append redirection
 - [x] pipes
-- [ ] ampersands
+- [x ] ampersands
 - [ ] error handling
 - [ ] memory leaks
 
