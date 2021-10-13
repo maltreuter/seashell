@@ -10,23 +10,15 @@
 #include <signal.h>
 #include <stdint.h>
 
+#include "parse.h"
+
 #define MAX_ARG_COUNT 128
 #define SHELL_PID getpid()
 
 char **c;
 
 int spawn(char **command, int in, int out);
-int internal_command(char **command);
-int ampersand(char **command);
-int check_pipe(char **command, char ***next_command);
-int input_redir(char **command, char **input_filename);
-int output_redir(char **command, char **output_filename);
-int check_append(char **command, char **output_filename);
 int spawn_process(char **command, int in, int out);
-void sigchld_handler(int sig);
-int check_and(char **command, char ***next_command);
-int check_or(char **command, char ***next_command);
-int check_semi(char **command, char ***next_command);
 int do_command(char **command);
 int set_command(char **command);
 char **get_command();
