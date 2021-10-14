@@ -214,7 +214,10 @@ int do_command(char **command) {
 	char **next;
 	int result = 0;
 
-	if(check_and(command, &next)) {
+	if(check_semi(command, &next)) {
+		do_command(command);
+		return do_command(next);
+	} else if(check_and(command, &next)) {
 		result = spawn_process(command, 0, 1);
 		if(result < 0) {
 			collect_garbage(next);
@@ -230,9 +233,6 @@ int do_command(char **command) {
 			collect_garbage(next);
 			return result;
 		}
-	} else if(check_semi(command, &next)) {
-		spawn_process(command, 0, 1);
-		return do_command(next);
 	} else {
 		return spawn_process(command, 0, 1);
 	}
@@ -266,18 +266,26 @@ int collect_garbage(char **command) {
 	return 0;
 }
 
+// Handle SIGINT
+void sig_handler(int signum) {
+	stop_lex();
+	exit(1);
+}
+
 int main(int argc, char* argv[]) {
 	int exit = 0;
 	int i;
 
 	char **command = NULL;
 
-    printf("Shell starting with process id: %d\n", SHELL_PID);
+    	printf("Shell starting with process id: %d\n", SHELL_PID);
 
 	// Set main process group and give group terminal control
 	setpgid(SHELL_PID, SHELL_PID);
 	tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 	tcsetpgrp(STDIN_FILENO, SHELL_PID);
+	
+	signal(SIGINT, sig_handler);
 
     while(!exit) {
 		printf("->");

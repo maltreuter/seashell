@@ -23,5 +23,6 @@ int do_command(char **command);
 int set_command(char **command);
 char **get_command();
 int collect_garbage(char **command);
+void sig_handler(int signum);
 
 #endif //SHELL_H
