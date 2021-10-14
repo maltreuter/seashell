@@ -38,7 +38,6 @@ int spawn_process(char **command, int in, int out) {
   	// Check for pipes and get right side of pipe (next_command)
   	int pipes = check_pipe(command, &next_command);
 
-	char **current = command;
 	int fd[2];
 
 	// Reap em
@@ -61,15 +60,20 @@ int spawn_process(char **command, int in, int out) {
 			while(pipes) {
 				pipe(fd);
 
-				result = spawn_pipe_process(current, in, fd[1]);
+				printf("command: ");
+				for(int i = 0; command[i] != NULL; i++) {
+					printf("%s, ", command[i]);
+				}
+				printf("\n");
+				result = spawn_pipe_process(command, in, fd[1]);
 
 				close(fd[1]);
 				in = fd[0];
 
 				// Get next command
-				current = next_command;
+				command = next_command;
 				next_command = NULL;
-				pipes = check_pipe(current, &next_command);
+				pipes = check_pipe(command, &next_command);
 			}
 
 			// Last command of pipeline
@@ -77,7 +81,7 @@ int spawn_process(char **command, int in, int out) {
 				dup2(in, 0);
 			}
 
-			result = execvp(current[0], current);
+			result = execvp(command[0], command);
 		} else {
 			// Pipe parent
 			child_pid = waitpid(child_pid, &status, 0);
@@ -181,6 +185,7 @@ int spawn_pipe_process(char **command, int in, int out) {
 		}
 
 		result = execvp(command[0], command);
+
 	} else {
 		// Parent
 		pid = waitpid(pid, &status, 0);
