@@ -57,7 +57,7 @@ int spawn_process(char **command, int in, int out) {
 			if(append) {
 				freopen(append_filename, "a+", stdout);
 			}
-
+			
 			while(pipes) {
 				pipe(fd);
 
@@ -214,9 +214,11 @@ int do_command(char **command) {
 	char **next;
 	int result = 0;
 
+	// Check for semicolon and if present, execute command
 	if(check_semi(command, &next)) {
 		do_command(command);
 		return do_command(next);
+	// Also check for '&&' and if present, execute command and check result
 	} else if(check_and(command, &next)) {
 		result = do_command(command);
 		if(result < 0) {
@@ -225,6 +227,7 @@ int do_command(char **command) {
 		} else {
 			return do_command(next);
 		}
+	// Also check for || and if present, execute command and check result
 	} else if(check_or(command, &next)) {
 		result = do_command(command);
 		if(result < 0) {
@@ -278,7 +281,7 @@ int main(int argc, char* argv[]) {
 
 	char **command = NULL;
 
-    	printf("Shell starting with process id: %d\n", SHELL_PID);
+    printf("Shell starting with process id: %d\n", SHELL_PID);
 
 	// Set main process group and give group terminal control
 	setpgid(SHELL_PID, SHELL_PID);
