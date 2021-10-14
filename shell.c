@@ -18,6 +18,10 @@ int spawn_process(char **command, int in, int out) {
 
   	char **next_command = NULL;
 
+	if(command[0] == NULL) {
+		return -1;
+	}
+
   	// Check for cd
   	if(internal_command(command)) {
       	return 0;
@@ -92,6 +96,14 @@ int spawn_process(char **command, int in, int out) {
 				freopen(append_filename, "a+", stdout);
 			}
 			result = execvp(command[0], command);
+
+			// Kill child (haha) if execvp fails
+			if(result < 0) {
+				printf("command failed: %s\n", command[0]);
+				collect_garbage(command);
+				stop_lex();
+				raise(SIGKILL);
+			}
 		} else {
 			// No pipes parent
 			if(background) {
@@ -196,7 +208,7 @@ int spawn_pipe_process(char **command, int in, int out) {
 // Recursive
 int do_command(char **command) {
 	if(command == NULL) {
-		return 0;
+		return -1;
 	}
 
 	char **next;
@@ -224,6 +236,8 @@ int do_command(char **command) {
 	} else {
 		return spawn_process(command, 0, 1);
 	}
+
+	return 0;
 }
 
 // Pass command from lexer to global char **c
@@ -254,8 +268,9 @@ int collect_garbage(char **command) {
 
 int main(int argc, char* argv[]) {
 	int exit = 0;
-	char **command = NULL;
 	int i;
+
+	char **command = NULL;
 
     printf("Shell starting with process id: %d\n", SHELL_PID);
 
@@ -265,7 +280,7 @@ int main(int argc, char* argv[]) {
 	tcsetpgrp(STDIN_FILENO, SHELL_PID);
 
     while(!exit) {
-    	printf("->");
+		printf("->");
 
 		// Start lexer
       	get_input();
@@ -284,8 +299,8 @@ int main(int argc, char* argv[]) {
 
 		// Break loop or do command
 		if(check_exit(command)) {
-			exit = 1;
 			collect_garbage(command);
+			exit = 1;
 		} else {
 			do_command(command);
 		}
