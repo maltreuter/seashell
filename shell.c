@@ -218,7 +218,7 @@ int do_command(char **command) {
 		do_command(command);
 		return do_command(next);
 	} else if(check_and(command, &next)) {
-		result = spawn_process(command, 0, 1);
+		result = do_command(command);
 		if(result < 0) {
 			collect_garbage(next);
 			return result;
@@ -226,7 +226,7 @@ int do_command(char **command) {
 			return do_command(next);
 		}
 	} else if(check_or(command, &next)) {
-		result = spawn_process(command, 0, 1);
+		result = do_command(command);
 		if(result < 0) {
 			return do_command(next);
 		} else {
