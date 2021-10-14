@@ -18,11 +18,13 @@
 char **c;
 
 int spawn_process(char **command, int in, int out);
-int spawn_pipe_process(char **command, int in, int out);
+int spawn_pipe_process(char **command, char **next_command, int in, int out);
 int do_command(char **command);
 int set_command(char **command);
 char **get_command();
 int collect_garbage(char **command);
+int child_suicide(char **command, char **next_command);
 void sig_handler(int signum);
+
 
 #endif //SHELL_H

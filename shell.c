@@ -56,21 +56,17 @@ int spawn_process(char **command, int in, int out) {
 			if(append) {
 				freopen(append_filename, "a+", stdout);
 			}
-			
+
 			while(pipes) {
 				pipe(fd);
 
-				printf("command: ");
-				for(int i = 0; command[i] != NULL; i++) {
-					printf("%s, ", command[i]);
-				}
-				printf("\n");
-				result = spawn_pipe_process(command, in, fd[1]);
+				result = spawn_pipe_process(command, next_command, in, fd[1]);
 
 				close(fd[1]);
 				in = fd[0];
 
 				// Get next command
+				collect_garbage(command);
 				command = next_command;
 				next_command = NULL;
 				pipes = check_pipe(command, &next_command);
@@ -82,6 +78,9 @@ int spawn_process(char **command, int in, int out) {
 			}
 
 			result = execvp(command[0], command);
+			if(result < 0) {
+				child_suicide(command, NULL);
+			}
 		} else {
 			// Pipe parent
 			child_pid = waitpid(child_pid, &status, 0);
@@ -103,10 +102,7 @@ int spawn_process(char **command, int in, int out) {
 
 			// Kill child (haha) if execvp fails
 			if(result < 0) {
-				printf("command failed: %s\n", command[0]);
-				collect_garbage(command);
-				stop_lex();
-				raise(SIGKILL);
+				child_suicide(command, NULL);
 			}
 		} else {
 			// No pipes parent
@@ -166,7 +162,7 @@ int spawn_process(char **command, int in, int out) {
 }
 
 // Execvp helper for pipelines
-int spawn_pipe_process(char **command, int in, int out) {
+int spawn_pipe_process(char **command, char **next_command, int in, int out) {
 	pid_t pid;
 	int status;
 	int result = 0;
@@ -185,7 +181,9 @@ int spawn_pipe_process(char **command, int in, int out) {
 		}
 
 		result = execvp(command[0], command);
-
+		if(result < 0) {
+			child_suicide(command, next_command);
+		}
 	} else {
 		// Parent
 		pid = waitpid(pid, &status, 0);
@@ -274,6 +272,21 @@ int collect_garbage(char **command) {
 	return 0;
 }
 
+// Have child process kill itself and free memory if command doesn't exist
+int child_suicide(char **command, char **next_command) {
+	printf("command failed: %s\n", command[0]);
+
+	collect_garbage(command);
+	if(next_command != NULL) {
+		collect_garbage(next_command);
+	}
+
+	stop_lex();
+	raise(SIGKILL);
+
+	return 0;
+}
+
 // Handle SIGINT
 void sig_handler(int signum) {
 	stop_lex();
@@ -292,7 +305,7 @@ int main(int argc, char* argv[]) {
 	setpgid(SHELL_PID, SHELL_PID);
 	tcsetpgrp(STDOUT_FILENO, SHELL_PID);
 	tcsetpgrp(STDIN_FILENO, SHELL_PID);
-	
+
 	signal(SIGINT, sig_handler);
 
     while(!exit) {
